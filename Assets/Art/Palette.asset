@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 75165525639cba745a0dae0cf4594ba9, type: 3}
+  m_Name: Palette
+  m_EditorClassIdentifier: ggo2026::ggo2026.PaletteSO
+  swatches:
+  - colour: 1
+    primary: {r: 0.5019608, g: 0.16078432, b: 0.32941177, a: 1}
+    secondary: {r: 0.81568635, g: 0.098039225, b: 0.27450982, a: 1}
+    tertiary: {r: 0.909804, g: 0.26666668, b: 0.26666668, a: 1}
+  - colour: 2
+    primary: {r: 0.2509804, g: 0.21176472, b: 0.62352943, a: 1}
+    secondary: {r: 0.34509805, g: 0.5019608, b: 0.8000001, a: 1}
+    tertiary: {r: 0.38431376, g: 0.67058825, b: 0.8313726, a: 1}
+  - colour: 4
+    primary: {r: 0.25882354, g: 0.49411768, b: 0.23137257, a: 1}
+    secondary: {r: 0.5019608, g: 0.64705884, b: 0.24705884, a: 1}
+    tertiary: {r: 0.73333335, g: 0.7686275, b: 0.30588236, a: 1}
+  - colour: 8
+    primary: {r: 0.8196079, g: 0.52156866, b: 0.11764707, a: 1}
+    secondary: {r: 1, g: 0.8352942, b: 0.41176474, a: 1}
+    tertiary: {r: 1, g: 1, b: 1, a: 1}
+  - colour: 16
+    primary: {r: 0.2392157, g: 0.14509805, b: 0.23137257, a: 1}
+    secondary: {r: 0.5019608, g: 0.16078432, b: 0.32941177, a: 1}
+    tertiary: {r: 0.60784316, g: 0.29803923, b: 0.31764707, a: 1}
+  outlineColor: {r: 0.14509805, g: 0.07450981, b: 0.10196079, a: 1}
+  outlineThickness: 2
+  highlightColor: {r: 1, g: 1, b: 1, a: 1}
