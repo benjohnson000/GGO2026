@@ -129,6 +129,15 @@ The starting deck contains many tiles of each colour. These **plain tiles** have
 - **Invalid swaps:** a swap that makes no match animates back and does not count as a turn.
 - **Matches:** 3 or more tiles of the same colour in a row or column, or a 2x2 square of one colour. Runs and squares that share a tile (L, T and block shapes) count as one match group.
 - **Resolving:** matched tiles are destroyed and return to the pool, tiles fall down, and empty cells are refilled from the pool. This repeats until no matches remain. Each repeat is a cascade.
+
+### Combo tiles
+
+- Special match shapes create a **combo tile** (like striped candy) in place of one matched tile.
+- **One combo per match group**, from its highest-priority shape. Priority, highest first: 5+ in a line, T/L (a row and a column of 3+ sharing a tile), 4 in a line, 2x2 square. Plain 3-matches make no combo.
+- The combo takes the match's colour and appears on the tile the player moved if it is part of the match; otherwise (cascades) at a fixed cell of the shape.
+- **Temporary:** combo tiles never join the deck. When destroyed they are gone for good. The matched tiles still return to the pool as usual.
+- **4 in a line** makes a **Row Clearer**, which destroys its whole row when destroyed. It always clears the row, whatever direction the match was.
+- Not decided yet: what the square, T/L and 5-line combos do, and whether swapping two combos together does something special.
 - **Initial fill:** avoids creating matches where the pool allows it.
 - **No valid moves:** the tiles already on the board are reshuffled. No tiles are drawn or returned.
 
@@ -218,6 +227,7 @@ The starting deck contains many tiles of each colour. These **plain tiles** have
 - Effect trigger order within a match and how cascades interact with match effects. (Passive timing is decided; see Match and passive effects.)
 - Player-facing name for match effects: "Activated" or "Match". "Match effect" is used in this doc for now.
 - Shift mechanics beyond the basic swap (the theme): special tiles, abilities, or other ways to rearrange the board.
+- Combo tiles: effects for the square, T/L and 5-line combos; combo + combo swaps; whether tiles destroyed by a combo trigger their match effects.
 - Run structure: map or linear progression, number of encounters, boss.
 - Platform (WebGL?). Input is settled as drag-to-swap; see Swapping and resolving.
 - Art direction. Decided: placeholder coloured shapes are used for now.

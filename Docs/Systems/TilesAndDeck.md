@@ -30,6 +30,14 @@ Design background: [DESIGN.md â€º Tiles](../DESIGN.md#tiles) and [â€º De
 - `IsFiller` is an explicit flag, not `Data == null`. Fillers should use tiles with no effect.
 - **Never** part of the deck: `TilePool.Add` and `TilePool.Return` silently discard fillers.
 
+## Combo tiles
+
+- Made on the board by special match shapes with `Tile.CreateCombo(data, effect)`. `IsCombo` is true and
+  `ComboEffect` says what it does when destroyed. See [Board › Combos](Board.md#combos).
+- Temporary, like fillers: `TilePool.Add` and `TilePool.Return` discard them, so they never join the deck.
+- Their `TileDataSO`s live in `Assets/Tiles/Data/Combos/` (e.g. `4-line/<Colour>-Row Clearer`) and are
+  listed in `BoardConfigSO.comboRules`, not in starting decks.
+
 ## TilePool
 
 ```

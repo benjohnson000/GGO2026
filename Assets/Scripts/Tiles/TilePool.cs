@@ -33,7 +33,7 @@ namespace ggo2026
         /// <summary>Adds a tile to the deck.</summary>
         public void Add(Tile tile)
         {
-            if (tile == null || tile.IsFiller) return;
+            if (tile == null || tile.IsFiller || tile.IsCombo) return;
             tiles.Add(tile);
         }
 
@@ -50,10 +50,10 @@ namespace ggo2026
             return tile;
         }
 
-        /// <summary>Puts a destroyed tile back. Fillers are discarded because they are not part of the deck.</summary>
+        /// <summary>Puts a destroyed tile back. Fillers and combo tiles are discarded because they are not part of the deck.</summary>
         public void Return(Tile tile)
         {
-            if (tile == null || tile.IsFiller) return;
+            if (tile == null || tile.IsFiller || tile.IsCombo) return;
             tiles.Add(tile);
         }
 

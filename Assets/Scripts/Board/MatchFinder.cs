@@ -30,6 +30,16 @@ namespace ggo2026
         private readonly List<int> groupOfRoot = new List<int>();
         private int[,] owner;
 
+        // Per-cell flags for which run directions cover it. A cell covered both ways is where a T/L/+ crosses.
+        private const int CoverRow = 1;
+        private const int CoverColumn = 2;
+        private int[,] cover;
+
+        // Per-group shape info, indexed like the results list. -1 means none.
+        private readonly List<int> groupLongestRun = new List<int>();
+        private readonly List<int> groupFirstSquare = new List<int>();
+        private readonly List<int> groupCross = new List<int>();
+
         /// <summary>
         /// Replaces <paramref name="results"/> with every match group on the grid.
         /// Groups are new objects each call, so earlier results stay valid.
@@ -48,10 +58,18 @@ namespace ggo2026
 
             if (runs.Count == 0) return;
 
-            if (owner == null || owner.GetLength(0) != width || owner.GetLength(1) != height) owner = new int[width, height];
+            if (owner == null || owner.GetLength(0) != width || owner.GetLength(1) != height)
+            {
+                owner = new int[width, height];
+                cover = new int[width, height];
+            }
             for (int x = 0; x < width; x++)
             {
-                for (int y = 0; y < height; y++) owner[x, y] = -1;
+                for (int y = 0; y < height; y++)
+                {
+                    owner[x, y] = -1;
+                    cover[x, y] = 0;
+                }
             }
 
             parents.Clear();
@@ -72,11 +90,16 @@ namespace ggo2026
                     int x = run.Horizontal ? run.X + i : run.X;
                     int y = run.Horizontal ? run.Y : run.Y + i;
                     Claim(x, y, r);
+                    cover[x, y] |= run.Horizontal ? CoverRow : CoverColumn;
                 }
             }
 
             groupOfRoot.Clear();
             for (int r = 0; r < runs.Count; r++) groupOfRoot.Add(-1);
+
+            groupLongestRun.Clear();
+            groupFirstSquare.Clear();
+            groupCross.Clear();
 
             for (int r = 0; r < runs.Count; r++)
             {
@@ -85,6 +108,22 @@ namespace ggo2026
 
                 groupOfRoot[root] = results.Count;
                 results.Add(new MatchGroup(cells[runs[r].X, runs[r].Y].Colour));
+                groupLongestRun.Add(-1);
+                groupFirstSquare.Add(-1);
+                groupCross.Add(-1);
+            }
+
+            for (int r = 0; r < runs.Count; r++)
+            {
+                int group = groupOfRoot[Find(r)];
+                if (runs[r].Square)
+                {
+                    if (groupFirstSquare[group] < 0) groupFirstSquare[group] = r;
+                }
+                else if (groupLongestRun[group] < 0 || runs[r].Length > runs[groupLongestRun[group]].Length)
+                {
+                    groupLongestRun[group] = r;
+                }
             }
 
             // Walking the grid (not the runs) adds each cell once, even where runs overlap.
@@ -93,9 +132,54 @@ namespace ggo2026
                 for (int x = 0; x < width; x++)
                 {
                     if (owner[x, y] < 0) continue;
-                    results[groupOfRoot[Find(owner[x, y])]].AddCell(new Vector2Int(x, y), cells[x, y]);
+
+                    int group = groupOfRoot[Find(owner[x, y])];
+                    results[group].AddCell(new Vector2Int(x, y), cells[x, y]);
+                    if (cover[x, y] == (CoverRow | CoverColumn) && groupCross[group] < 0) groupCross[group] = y * width + x;
                 }
             }
+
+            for (int group = 0; group < results.Count; group++) Classify(results[group], group, width);
+        }
+
+        /// <summary>
+        /// Picks the group's best shape. The order of these checks is the combo priority:
+        /// 5-line, then cross (T/L/+), then 4-line, then square, then plain.
+        /// </summary>
+        private void Classify(MatchGroup group, int index, int width)
+        {
+            int longest = groupLongestRun[index];
+            int longestLength = longest >= 0 ? runs[longest].Length : 0;
+
+            if (longestLength >= 5)
+            {
+                group.SetShape(MatchShape.Line5, RunMiddle(runs[longest]));
+            }
+            else if (groupCross[index] >= 0)
+            {
+                int cell = groupCross[index];
+                group.SetShape(MatchShape.Cross, new Vector2Int(cell % width, cell / width));
+            }
+            else if (longestLength >= 4)
+            {
+                group.SetShape(MatchShape.Line4, RunMiddle(runs[longest]));
+            }
+            else if (groupFirstSquare[index] >= 0)
+            {
+                Run square = runs[groupFirstSquare[index]];
+                group.SetShape(MatchShape.Square, new Vector2Int(square.X, square.Y));
+            }
+            else
+            {
+                // A group with no square always has at least one run.
+                group.SetShape(MatchShape.Plain, RunMiddle(runs[longest]));
+            }
+        }
+
+        private static Vector2Int RunMiddle(Run run)
+        {
+            int offset = (run.Length - 1) / 2;
+            return run.Horizontal ? new Vector2Int(run.X + offset, run.Y) : new Vector2Int(run.X, run.Y + offset);
         }
 
         /// <summary>True if the tile at <paramref name="cell"/> is part of any run.</summary>

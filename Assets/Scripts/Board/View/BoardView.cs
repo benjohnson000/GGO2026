@@ -73,7 +73,7 @@ namespace ggo2026
             if (!pool.HasFillerTiles) Debug.LogWarning($"{name}: {config.name} has no valid filler tiles, so fillers use plain tiles of a random colour.", config);
             if (startingDeck != null) startingDeck.AddTo(pool);
 
-            Board = new Board(config.Width, config.Height, pool, rng);
+            Board = new Board(config.Width, config.Height, pool, rng, new ComboTable(config.ComboRules));
             Play(Board.Fill());
         }
 
@@ -137,6 +137,13 @@ namespace ggo2026
                     yield return AnimatePop(events, i, end);
                     i = end;
                 }
+                else if (boardEvent is ComboCreatedEvent)
+                {
+                    int end = i;
+                    while (end < events.Count && events[end] is ComboCreatedEvent) end++;
+                    yield return AnimateComboSpawn(events, i, end);
+                    i = end;
+                }
                 else if (IsFallEvent(boardEvent))
                 {
                     int end = i;
@@ -153,7 +160,8 @@ namespace ggo2026
 
         private static bool IsPopEvent(BoardEvent boardEvent)
         {
-            return boardEvent is MatchEvent || boardEvent is TileDestroyedEvent;
+            // Combo effects pop together with the match that set them off.
+            return boardEvent is MatchEvent || boardEvent is TileDestroyedEvent || boardEvent is ComboActivatedEvent;
         }
 
         private static bool IsFallEvent(BoardEvent boardEvent)
@@ -204,6 +212,32 @@ namespace ggo2026
             }
 
             foreach (TileView view in popping) Destroy(view.gameObject);
+            popping.Clear();
+        }
+
+        /// <summary>New combo tiles grow in at their cell, the reverse of a pop.</summary>
+        private IEnumerator AnimateComboSpawn(List<BoardEvent> events, int start, int end)
+        {
+            popping.Clear();
+            for (int i = start; i < end; i++)
+            {
+                ComboCreatedEvent created = (ComboCreatedEvent)events[i];
+                TileView view = TileView.Create(transform, created.Tile, CellToLocal(created.Cell), settings);
+                views[created.Tile] = view;
+                view.transform.localScale = Vector3.zero;
+                popping.Add(view);
+            }
+
+            Vector3 fullScale = Vector3.one * (settings.CellSize * settings.TileScale);
+            float elapsed = 0f;
+            while (elapsed < settings.PopDuration)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / settings.PopDuration);
+                foreach (TileView view in popping) view.transform.localScale = fullScale * Mathf.SmoothStep(0f, 1f, t);
+                yield return null;
+            }
+
             popping.Clear();
         }
 

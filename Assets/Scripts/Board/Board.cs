@@ -20,9 +20,12 @@ namespace ggo2026
         private readonly Tile[,] cells;
         private readonly TilePool pool;
         private readonly System.Random rng;
+        private readonly ComboTable combos;
         private readonly MatchFinder matchFinder = new MatchFinder();
 
         private readonly List<MatchGroup> matches = new List<MatchGroup>();
+        private readonly List<ComboCreatedEvent> comboSpawns = new List<ComboCreatedEvent>();
+        private readonly List<ComboActivatedEvent> comboEffects = new List<ComboActivatedEvent>();
         private readonly List<Tile> rejected = new List<Tile>();
         private readonly List<Tile> shuffleTiles = new List<Tile>();
         private readonly List<Vector2Int> shuffleCells = new List<Vector2Int>();
@@ -34,11 +37,13 @@ namespace ggo2026
         /// <summary>Accepted swaps so far. Turns are measured in swaps, so cascades and rejected swaps don't count.</summary>
         public int SwapCount { get; private set; }
 
-        public Board(int width, int height, TilePool pool, System.Random rng)
+        /// <param name="combos">Which combo tiles special matches make. Null means matches never make combos.</param>
+        public Board(int width, int height, TilePool pool, System.Random rng, ComboTable combos = null)
         {
             if (width < 1 || height < 1) throw new ArgumentOutOfRangeException(nameof(width), $"Board size must be at least 1x1, got {width}x{height}.");
             this.pool = pool ?? throw new ArgumentNullException(nameof(pool));
             this.rng = rng ?? new System.Random();
+            this.combos = combos;
 
             Width = width;
             Height = height;
@@ -103,7 +108,7 @@ namespace ggo2026
             if (!accepted) return events;
 
             SwapCount++;
-            Resolve(events);
+            Resolve(events, a, b);
             EnsureValidMove(events);
             return events;
         }
@@ -123,8 +128,12 @@ namespace ggo2026
             return false;
         }
 
-        /// <summary>Clears matches, drops tiles and refills until the board is stable.</summary>
-        private void Resolve(List<BoardEvent> events)
+        /// <summary>
+        /// Clears matches, drops tiles and refills until the board is stable.
+        /// <paramref name="swapA"/> and <paramref name="swapB"/> are the swapped cells (dragged tile first), where
+        /// combos from the swap's own matches are placed; null when resolving without a swap.
+        /// </summary>
+        private void Resolve(List<BoardEvent> events, Vector2Int? swapA = null, Vector2Int? swapB = null)
         {
             for (int cascade = 0; cascade < MaxCascades; cascade++)
             {
@@ -133,18 +142,35 @@ namespace ggo2026
 
                 foreach (MatchGroup group in matches) events.Add(new MatchEvent(group, cascade));
 
+                // Combos are chosen before anything is destroyed, but placed after, into cells the match emptied.
+                comboSpawns.Clear();
+                if (combos != null)
+                {
+                    foreach (MatchGroup group in matches)
+                    {
+                        if (!combos.TryCreate(group.Shape, group.Colour, out Tile combo)) continue;
+                        Vector2Int cell = cascade == 0 ? PickComboCell(group, swapA, swapB) : group.ComboCell;
+                        comboSpawns.Add(new ComboCreatedEvent(combo, cell, group));
+                    }
+                }
+
+                comboEffects.Clear();
                 foreach (MatchGroup group in matches)
                 {
-                    foreach (Vector2Int cell in group.Cells)
-                    {
-                        Tile tile = cells[cell.x, cell.y];
-                        if (tile == null) continue;
+                    foreach (Vector2Int cell in group.Cells) DestroyAt(cell, events);
+                }
 
-                        cells[cell.x, cell.y] = null;
-                        events.Add(new TileDestroyedEvent(tile, cell));
-                        // Returned before refilling, so a destroyed tile can be redrawn straight away.
-                        pool.Return(tile);
-                    }
+                // Effects can destroy more combos, which queue their own effects, so this list may grow while looping.
+                for (int i = 0; i < comboEffects.Count; i++)
+                {
+                    events.Add(comboEffects[i]);
+                    ApplyComboEffect(comboEffects[i], events);
+                }
+
+                foreach (ComboCreatedEvent spawn in comboSpawns)
+                {
+                    cells[spawn.Cell.x, spawn.Cell.y] = spawn.Tile;
+                    events.Add(spawn);
                 }
 
                 ApplyGravity(events);
@@ -152,6 +178,38 @@ namespace ggo2026
             }
 
             Debug.LogWarning($"Board: stopped resolving after {MaxCascades} cascades.");
+        }
+
+        /// <summary>The dragged tile's cell if it is in the group, else the other swapped cell, else the group's default.</summary>
+        private static Vector2Int PickComboCell(MatchGroup group, Vector2Int? swapA, Vector2Int? swapB)
+        {
+            if (swapA.HasValue && group.Contains(swapA.Value)) return swapA.Value;
+            if (swapB.HasValue && group.Contains(swapB.Value)) return swapB.Value;
+            return group.ComboCell;
+        }
+
+        /// <summary>Removes the tile at a cell, if any, returns it to the pool and queues its combo effect.</summary>
+        private void DestroyAt(Vector2Int cell, List<BoardEvent> events)
+        {
+            Tile tile = cells[cell.x, cell.y];
+            if (tile == null) return;
+
+            cells[cell.x, cell.y] = null;
+            events.Add(new TileDestroyedEvent(tile, cell));
+            // Returned before refilling, so a destroyed tile can be redrawn straight away. Combos are discarded.
+            pool.Return(tile);
+
+            if (tile.ComboEffect != ComboEffect.None) comboEffects.Add(new ComboActivatedEvent(tile, cell));
+        }
+
+        private void ApplyComboEffect(ComboActivatedEvent activated, List<BoardEvent> events)
+        {
+            switch (activated.Tile.ComboEffect)
+            {
+                case ComboEffect.ClearRow:
+                    for (int x = 0; x < Width; x++) DestroyAt(new Vector2Int(x, activated.Cell.y), events);
+                    break;
+            }
         }
 
         private void ApplyGravity(List<BoardEvent> events)

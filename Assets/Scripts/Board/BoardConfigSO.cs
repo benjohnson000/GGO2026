@@ -19,8 +19,13 @@ namespace ggo2026
                  "If empty, fillers fall back to plain tiles of a random colour.")]
         [SerializeField] private List<TileDataSO> fillerTiles = new List<TileDataSO>();
 
+        [Tooltip("Combo tiles made by special match shapes. Each match makes at most one combo, from its highest-priority shape " +
+                 "(5-line, cross, 4-line, square). Shapes with no rule make no combo.")]
+        [SerializeField] private List<ComboRule> comboRules = new List<ComboRule>();
+
         public int Width => width;
         public int Height => height;
         public IReadOnlyList<TileDataSO> FillerTiles => fillerTiles;
+        public IReadOnlyList<ComboRule> ComboRules => comboRules;
     }
 }

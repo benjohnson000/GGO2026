@@ -59,11 +59,12 @@ Drags off the edge of the board are ignored.
 | Events | Animation | Timing |
 |---|---|---|
 | `SwapEvent` | Both tiles slide past each other; rejected swaps slide back | `SwapDuration` each way, smoothstep |
-| `MatchEvent` + `TileDestroyedEvent` run | All destroyed tiles shrink together, then are destroyed | `PopDuration`, ease-in |
+| `MatchEvent` + `TileDestroyedEvent` + `ComboActivatedEvent` run | All destroyed tiles (including those a combo effect hits) shrink together, then are destroyed | `PopDuration`, ease-in |
+| `ComboCreatedEvent` run | New combo tiles are created at their cell and grow in from zero | `PopDuration`, smoothstep |
 | `TileMovedEvent` + `TileSpawnedEvent` run | Falling and new tiles drop together; spawns are created at `SpawnCell` | `distance / FallSpeed`, ease-in |
 | `BoardShuffledEvent` | Moved tiles slide to their new cells | `ShuffleDuration`, smoothstep |
 
-So each cascade step reads as "pop, then drop". `BoardView` keeps a `Dictionary<Tile, TileView>` to find
+So each cascade step reads as "pop, (combos appear,) then drop". `BoardView` keeps a `Dictionary<Tile, TileView>` to find
 the view for each event; views are added on spawn and removed on destroy.
 
 Move animations share reusable lists (`moveTargets`, …) because only one animation runs at a time.

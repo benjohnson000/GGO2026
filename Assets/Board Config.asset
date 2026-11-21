@@ -20,3 +20,12 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 713def77d77629040b293e6edb7b4183, type: 2}
   - {fileID: 11400000, guid: 74ac4761e81c3e54ebc6e065213ed1c9, type: 2}
   - {fileID: 11400000, guid: b5c64e186998a0240bcaa39f9b498a1b, type: 2}
+  comboRules:
+  - shape: 2
+    effect: 1
+    tiles:
+    - {fileID: 11400000, guid: 6bbe01b866525e64f8a8abb31f90a52d, type: 2}
+    - {fileID: 11400000, guid: a8b18215e6aff4e4984750da956f9248, type: 2}
+    - {fileID: 11400000, guid: 7f652abe77bf02c479954aec3e56a1b8, type: 2}
+    - {fileID: 11400000, guid: 135cfaf006f4caa448e6f9fd36d36e3b, type: 2}
+    - {fileID: 11400000, guid: 65383e2ad780b0b47b8506f49ce49678, type: 2}

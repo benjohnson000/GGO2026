@@ -8,7 +8,7 @@ For what the game *is*, see [DESIGN.md](DESIGN.md). For coding conventions, see
 
 | Folder | Namespace | Contents | Doc |
 |---|---|---|---|
-| `Assets/Scripts/Board/` | `ggo2026` | Grid rules: `Board`, `MatchFinder`, `MatchGroup`, `BoardConfigSO` | [Board](Systems/Board.md) |
+| `Assets/Scripts/Board/` | `ggo2026` | Grid rules: `Board`, `MatchFinder`, `MatchGroup`, `MatchShape`, `BoardConfigSO`; `Combos/` for combo rules | [Board](Systems/Board.md) |
 | `Assets/Scripts/Board/Events/` | `ggo2026` | `BoardEvent` subclasses the board emits | [Board](Systems/Board.md#board-events) |
 | `Assets/Scripts/Board/View/` | `ggo2026` | `BoardView`, `TileView`, view states, palette and view settings | [Board View](Systems/BoardView.md) |
 | `Assets/Scripts/Tiles/` | `ggo2026` | `Tile`, `TilePool`, `TileDataSO`, `StartingDeckSO`, `TileColour` | [Tiles and Deck](Systems/TilesAndDeck.md) |
@@ -90,6 +90,7 @@ Built:
 
 - Grid rules: drag-to-swap, invalid-swap bounce, matches incl. 2x2 squares and L/T merging, gravity, refill, cascades,
   no-match initial fill, reshuffle when no moves remain.
+- Combo tiles: match-shape priority, temporary combo tiles (4-line → Row Clearer) from `BoardConfigSO` combo rules.
 - Deck-as-pool with filler tiles when the pool is empty.
 - Placeholder visuals: outlined shape, pattern masked to the shape, and icon, each tinted from the palette by one shader.
 - Tile authoring tools in the editor.
