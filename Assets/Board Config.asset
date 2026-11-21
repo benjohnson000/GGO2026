@@ -13,5 +13,10 @@ MonoBehaviour:
   m_Name: Board Config
   m_EditorClassIdentifier: ggo2026::ggo2026.BoardConfigSO
   width: 6
-  height: 6
-  fillerColours: -1
+  height: 8
+  fillerTiles:
+  - {fileID: 11400000, guid: 40c494ca600736746a770d5aea7977e3, type: 2}
+  - {fileID: 11400000, guid: a5e93feab0fe5f040b306db10f786661, type: 2}
+  - {fileID: 11400000, guid: 713def77d77629040b293e6edb7b4183, type: 2}
+  - {fileID: 11400000, guid: 74ac4761e81c3e54ebc6e065213ed1c9, type: 2}
+  - {fileID: 11400000, guid: b5c64e186998a0240bcaa39f9b498a1b, type: 2}

@@ -12,21 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9aaf750ecf51d7347b567141baf950d5, type: 3}
   m_Name: Board View Settings
   m_EditorClassIdentifier: ggo2026::ggo2026.BoardViewSettingsSO
-  cellSize: 1
-  tileScale: 1
-  fillerSprite: {fileID: 1807125615787039003, guid: a1709d09918df0e4399d94d21e026674, type: 3}
-  tileMaterial: {fileID: 0}
-  palette:
-  - colour: 1
-    color: {r: 0.92549026, g: 0.15294118, b: 0.24705884, a: 1}
-  - colour: 2
-    color: {r: 0.21960786, g: 0.34901962, b: 0.7019608, a: 1}
-  - colour: 4
-    color: {r: 0.14901961, g: 0.52156866, b: 0.29803923, a: 1}
-  - colour: 8
-    color: {r: 0.95294124, g: 0.65882355, b: 0.20000002, a: 1}
+  cellSize: 1.75
+  tileScale: 0.5714286
+  fallbackSprite: {fileID: 1863484939, guid: a1709d09918df0e4399d94d21e026674, type: 3}
+  tileMaterial: {fileID: 2100000, guid: 63260371053524f498aeb83a59e69880, type: 2}
+  tilePalette: {fileID: 11400000, guid: 2c39ddda4e672704888d53aaa6a36cac, type: 2}
   swapDuration: 0.15
   popDuration: 0.15
   fallSpeed: 12
-  shuffleDuration: 0.4
+  shuffleDuration: 0.6
   dragThreshold: 0.35

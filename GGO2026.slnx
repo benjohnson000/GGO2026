@@ -1,3 +1,4 @@
 ﻿<Solution>
   <Project Path="ggo2026.csproj" />
+  <Project Path="ggo2026.Editor.csproj" />
 </Solution>
