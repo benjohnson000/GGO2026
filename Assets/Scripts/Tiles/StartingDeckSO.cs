@@ -20,9 +20,9 @@ namespace ggo2026
             {
                 if (entry == null || entry.TileData == null) continue;
 
-                if (entry.TileData.Colours == TileColour.None)
+                if (!TileColourUtils.IsMatchable(entry.TileData.Colour))
                 {
-                    Debug.LogError($"{name}: tile '{entry.TileData.name}' has no colours and can never match. Skipping it.", this);
+                    Debug.LogError($"{name}: tile '{entry.TileData.name}' has no valid colour and can never match. Skipping it.", this);
                     continue;
                 }
 

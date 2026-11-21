@@ -6,30 +6,36 @@ namespace ggo2026
     /// </summary>
     public class Tile
     {
-        /// <summary>Deck definition, or null for a filler.</summary>
+        /// <summary>Tile definition. Null only for a fallback filler created without data.</summary>
         public TileDataSO Data { get; }
 
-        /// <summary>Colours this tile matches as.</summary>
-        public TileColour Colours { get; }
+        /// <summary>Colour this tile matches as.</summary>
+        public TileColour Colour { get; }
 
         /// <summary>Fillers stand in when the pool is empty. They are not part of the deck.</summary>
-        public bool IsFiller => Data == null;
+        public bool IsFiller { get; }
 
-        public Tile(TileDataSO data)
+        public Tile(TileDataSO data) : this(data, data != null ? data.Colour : TileColour.None, false)
+        {
+        }
+
+        private Tile(TileDataSO data, TileColour colour, bool isFiller)
         {
             Data = data;
-            Colours = data != null ? data.Colours : TileColour.None;
+            Colour = colour;
+            IsFiller = isFiller;
         }
 
-        private Tile(TileColour colour)
+        /// <summary>Creates a filler from a filler tile definition.</summary>
+        public static Tile CreateFiller(TileDataSO data)
         {
-            Colours = colour;
+            return new Tile(data, data != null ? data.Colour : TileColour.None, true);
         }
 
-        /// <summary>Creates a filler tile of the given colour with no effect.</summary>
+        /// <summary>Creates a plain filler of the given colour, used when no filler tile definitions are available.</summary>
         public static Tile CreateFiller(TileColour colour)
         {
-            return new Tile(TileColourUtils.Sanitize(colour));
+            return new Tile(null, colour, true);
         }
     }
 }

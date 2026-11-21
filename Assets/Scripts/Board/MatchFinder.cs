@@ -4,10 +4,9 @@ using UnityEngine;
 namespace ggo2026
 {
     /// <summary>
-    /// Finds matches on a grid of tiles. A run is 3 or more tiles in a line that all share at least one colour.
-    /// Checking adjacent pairs is not enough for multi-colour tiles (Red|Blue, Blue, Red shares no single colour),
-    /// so every scan is done once per colour.
-    /// Grids are indexed [x, y] with (0, 0) at the bottom left; null cells never match.
+    /// Finds matches on a grid of tiles. A match is a run of 3 or more tiles of the same colour in a row or column,
+    /// or a 2x2 square of one colour.
+    /// Grids are indexed [x, y] with (0, 0) at the bottom left; null cells and colourless tiles never match.
     /// </summary>
     public class MatchFinder
     {
@@ -16,11 +15,13 @@ namespace ggo2026
 
         private struct Run
         {
-            public TileColour Colour;
             public int X;
             public int Y;
             public int Length;
             public bool Horizontal;
+
+            /// <summary>A 2x2 block with (X, Y) as its bottom-left cell. Length is 4; Horizontal is unused.</summary>
+            public bool Square;
         }
 
         // Buffers reused between scans to avoid garbage during cascades.
@@ -41,12 +42,9 @@ namespace ggo2026
             int width = cells.GetLength(0);
             int height = cells.GetLength(1);
 
-            for (int bit = 1; bit <= (int)TileColourUtils.All; bit <<= 1)
-            {
-                TileColour colour = (TileColour)bit;
-                FindRuns(cells, width, height, colour, true);
-                FindRuns(cells, width, height, colour, false);
-            }
+            FindRuns(cells, width, height, true);
+            FindRuns(cells, width, height, false);
+            FindSquares(cells, width, height);
 
             if (runs.Count == 0) return;
 
@@ -59,16 +57,21 @@ namespace ggo2026
             parents.Clear();
             for (int r = 0; r < runs.Count; r++) parents.Add(r);
 
-            // Runs that share a cell belong to the same group.
+            // Runs and squares that share a cell (L, T and block shapes) belong to the same group.
             for (int r = 0; r < runs.Count; r++)
             {
                 Run run = runs[r];
                 for (int i = 0; i < run.Length; i++)
                 {
+                    if (run.Square)
+                    {
+                        Claim(run.X + i % 2, run.Y + i / 2, r);
+                        continue;
+                    }
+
                     int x = run.Horizontal ? run.X + i : run.X;
                     int y = run.Horizontal ? run.Y : run.Y + i;
-                    if (owner[x, y] < 0) owner[x, y] = r;
-                    else Union(r, owner[x, y]);
+                    Claim(x, y, r);
                 }
             }
 
@@ -78,12 +81,10 @@ namespace ggo2026
             for (int r = 0; r < runs.Count; r++)
             {
                 int root = Find(r);
-                if (groupOfRoot[root] < 0)
-                {
-                    groupOfRoot[root] = results.Count;
-                    results.Add(new MatchGroup());
-                }
-                results[groupOfRoot[root]].AddColour(runs[r].Colour);
+                if (groupOfRoot[root] >= 0) continue;
+
+                groupOfRoot[root] = results.Count;
+                results.Add(new MatchGroup(cells[runs[r].X, runs[r].Y].Colour));
             }
 
             // Walking the grid (not the runs) adds each cell once, even where runs overlap.
@@ -103,24 +104,28 @@ namespace ggo2026
             int width = cells.GetLength(0);
             int height = cells.GetLength(1);
             Tile tile = cells[cell.x, cell.y];
-            if (tile == null) return false;
+            if (tile == null || tile.Colour == TileColour.None) return false;
 
-            for (int bit = 1; bit <= (int)TileColourUtils.All; bit <<= 1)
+            TileColour colour = tile.Colour;
+
+            int horizontal = 1;
+            for (int x = cell.x - 1; x >= 0 && Is(cells[x, cell.y], colour); x--) horizontal++;
+            for (int x = cell.x + 1; x < width && Is(cells[x, cell.y], colour); x++) horizontal++;
+            if (horizontal >= MinRun) return true;
+
+            int vertical = 1;
+            for (int y = cell.y - 1; y >= 0 && Is(cells[cell.x, y], colour); y--) vertical++;
+            for (int y = cell.y + 1; y < height && Is(cells[cell.x, y], colour); y++) vertical++;
+            if (vertical >= MinRun) return true;
+
+            // Any of the four 2x2 blocks that contain this cell.
+            for (int dx = -1; dx <= 0; dx++)
             {
-                TileColour colour = (TileColour)bit;
-                if ((tile.Colours & colour) == 0) continue;
-
-                int horizontal = 1;
-                for (int x = cell.x - 1; x >= 0 && Has(cells[x, cell.y], colour); x--) horizontal++;
-                for (int x = cell.x + 1; x < width && Has(cells[x, cell.y], colour); x++) horizontal++;
-                if (horizontal >= MinRun) return true;
-
-                int vertical = 1;
-                for (int y = cell.y - 1; y >= 0 && Has(cells[cell.x, y], colour); y--) vertical++;
-                for (int y = cell.y + 1; y < height && Has(cells[cell.x, y], colour); y++) vertical++;
-                if (vertical >= MinRun) return true;
+                for (int dy = -1; dy <= 0; dy++)
+                {
+                    if (IsSquare(cells, width, height, cell.x + dx, cell.y + dy, colour)) return true;
+                }
             }
-
             return false;
         }
 
@@ -139,7 +144,7 @@ namespace ggo2026
             return false;
         }
 
-        private void FindRuns(Tile[,] cells, int width, int height, TileColour colour, bool horizontal)
+        private void FindRuns(Tile[,] cells, int width, int height, bool horizontal)
         {
             int lines = horizontal ? height : width;
             int length = horizontal ? width : height;
@@ -149,20 +154,20 @@ namespace ggo2026
                 int i = 0;
                 while (i < length)
                 {
-                    if (!Has(Get(cells, horizontal, line, i), colour))
+                    Tile first = Get(cells, horizontal, line, i);
+                    if (first == null || first.Colour == TileColour.None)
                     {
                         i++;
                         continue;
                     }
 
                     int start = i;
-                    while (i < length && Has(Get(cells, horizontal, line, i), colour)) i++;
+                    while (i < length && Is(Get(cells, horizontal, line, i), first.Colour)) i++;
 
                     if (i - start >= MinRun)
                     {
                         runs.Add(new Run
                         {
-                            Colour = colour,
                             X = horizontal ? start : line,
                             Y = horizontal ? line : start,
                             Length = i - start,
@@ -173,14 +178,44 @@ namespace ggo2026
             }
         }
 
+        private void FindSquares(Tile[,] cells, int width, int height)
+        {
+            for (int x = 0; x < width - 1; x++)
+            {
+                for (int y = 0; y < height - 1; y++)
+                {
+                    Tile tile = cells[x, y];
+                    if (tile == null || tile.Colour == TileColour.None) continue;
+                    if (!IsSquare(cells, width, height, x, y, tile.Colour)) continue;
+
+                    runs.Add(new Run { X = x, Y = y, Length = 4, Square = true });
+                }
+            }
+        }
+
+        /// <summary>True if the 2x2 block with bottom-left (x, y) is in bounds and all <paramref name="colour"/>.</summary>
+        private static bool IsSquare(Tile[,] cells, int width, int height, int x, int y, TileColour colour)
+        {
+            if (colour == TileColour.None) return false;
+            if (x < 0 || y < 0 || x + 1 >= width || y + 1 >= height) return false;
+            return Is(cells[x, y], colour) && Is(cells[x + 1, y], colour)
+                && Is(cells[x, y + 1], colour) && Is(cells[x + 1, y + 1], colour);
+        }
+
+        private void Claim(int x, int y, int r)
+        {
+            if (owner[x, y] < 0) owner[x, y] = r;
+            else Union(r, owner[x, y]);
+        }
+
         private static Tile Get(Tile[,] cells, bool horizontal, int line, int i)
         {
             return horizontal ? cells[i, line] : cells[line, i];
         }
 
-        private static bool Has(Tile tile, TileColour colour)
+        private static bool Is(Tile tile, TileColour colour)
         {
-            return tile != null && (tile.Colours & colour) != 0;
+            return tile != null && tile.Colour == colour;
         }
 
         private int Find(int r)

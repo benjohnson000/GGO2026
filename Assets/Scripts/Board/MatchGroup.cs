@@ -4,25 +4,23 @@ using UnityEngine;
 namespace ggo2026
 {
     /// <summary>
-    /// Connected set of matched tiles. Runs that share a cell (L and T shapes) are merged into one group,
-    /// including runs of different colours that cross on a multi-colour tile.
+    /// Connected set of matched tiles of one colour. Runs and 2x2 squares that share a cell (L, T and block shapes) are merged into one group.
     /// </summary>
     public class MatchGroup
     {
         private readonly List<Vector2Int> cells = new List<Vector2Int>();
         private readonly List<Tile> tiles = new List<Tile>();
 
-        /// <summary>Every colour a run in this group matched on.</summary>
-        public TileColour Colours { get; private set; }
+        public TileColour Colour { get; }
 
         /// <summary>Matched cells, listed bottom row first, left to right. Parallel to <see cref="Tiles"/>.</summary>
         public IReadOnlyList<Vector2Int> Cells => cells;
 
         public IReadOnlyList<Tile> Tiles => tiles;
 
-        internal void AddColour(TileColour colour)
+        internal MatchGroup(TileColour colour)
         {
-            Colours |= colour;
+            Colour = colour;
         }
 
         internal void AddCell(Vector2Int cell, Tile tile)

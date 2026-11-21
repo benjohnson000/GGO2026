@@ -1,5 +1,5 @@
-using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace ggo2026
 {
@@ -17,14 +17,15 @@ namespace ggo2026
         [SerializeField] private float tileScale = 0.85f;
 
         [Header("Visuals")]
-        [Tooltip("Sprite for filler tiles, and for deck tiles with no shape assigned.")]
-        [SerializeField] private Sprite fillerSprite;
+        [Tooltip("Sprite for tiles with no shape assigned, including plain fillers when the board config has no filler tiles.")]
+        [FormerlySerializedAs("fillerSprite")]
+        [SerializeField] private Sprite fallbackSprite;
 
-        [Tooltip("Optional sprite material. Leave empty to use the renderer's default.")]
+        [Tooltip("Sprite material for tiles. Use a material with the GGO2026/Tile Outline shader, or the outline is not drawn.")]
         [SerializeField] private Material tileMaterial;
 
-        [Tooltip("Display colour per tile colour. Multi-colour tiles currently show their lowest colour.")]
-        [SerializeField] private List<ColourSwatch> palette = new List<ColourSwatch>();
+        [Tooltip("Tile colours and outline.")]
+        [SerializeField] private PaletteSO tilePalette;
 
         [Header("Timing")]
         [Min(0.01f)]
@@ -47,23 +48,13 @@ namespace ggo2026
 
         public float CellSize => cellSize;
         public float TileScale => tileScale;
-        public Sprite FillerSprite => fillerSprite;
+        public Sprite FallbackSprite => fallbackSprite;
         public Material TileMaterial => tileMaterial;
+        public PaletteSO Palette => tilePalette;
         public float SwapDuration => swapDuration;
         public float PopDuration => popDuration;
         public float FallSpeed => fallSpeed;
         public float ShuffleDuration => shuffleDuration;
         public float DragThreshold => dragThreshold;
-
-        /// <summary>Display colour for a tile's colours (its lowest colour), or white if the palette has no entry.</summary>
-        public Color GetColor(TileColour colours)
-        {
-            TileColour colour = TileColourUtils.Lowest(colours);
-            foreach (ColourSwatch swatch in palette)
-            {
-                if (swatch != null && swatch.Colour == colour) return swatch.Color;
-            }
-            return Color.white;
-        }
     }
 }

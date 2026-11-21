@@ -194,7 +194,7 @@ namespace ggo2026
         }
 
         /// <summary>
-        /// Draws a tile that won't complete a run with the tiles already placed to its left and below.
+        /// Draws a tile that won't complete a run or 2x2 square with the tiles already placed to its left and below.
         /// Rejected draws go back to the pool. If nothing fits, the last draw is used anyway.
         /// </summary>
         private Tile DrawWithoutMatch(int x, int y)
@@ -203,7 +203,7 @@ namespace ggo2026
             for (int attempt = 0; attempt < MaxFillAttempts; attempt++)
             {
                 Tile tile = pool.Draw();
-                if (!CompletesRunOnFill(x, y, tile.Colours))
+                if (!CompletesRunOnFill(x, y, tile.Colour))
                 {
                     chosen = tile;
                     break;
@@ -224,15 +224,19 @@ namespace ggo2026
         }
 
         /// <summary>Fill goes bottom to top, left to right, so only the cells to the left and below are filled.</summary>
-        private bool CompletesRunOnFill(int x, int y, TileColour colours)
+        private bool CompletesRunOnFill(int x, int y, TileColour colour)
         {
-            if (x >= 2 && cells[x - 1, y] != null && cells[x - 2, y] != null
-                && (colours & cells[x - 1, y].Colours & cells[x - 2, y].Colours) != 0) return true;
-
-            if (y >= 2 && cells[x, y - 1] != null && cells[x, y - 2] != null
-                && (colours & cells[x, y - 1].Colours & cells[x, y - 2].Colours) != 0) return true;
-
+            if (colour == TileColour.None) return false;
+            if (x >= 2 && IsColour(x - 1, y, colour) && IsColour(x - 2, y, colour)) return true;
+            if (y >= 2 && IsColour(x, y - 1, colour) && IsColour(x, y - 2, colour)) return true;
+            // 2x2 square with this cell as its top-right corner.
+            if (x >= 1 && y >= 1 && IsColour(x - 1, y, colour) && IsColour(x, y - 1, colour) && IsColour(x - 1, y - 1, colour)) return true;
             return false;
+        }
+
+        private bool IsColour(int x, int y, TileColour colour)
+        {
+            return cells[x, y] != null && cells[x, y].Colour == colour;
         }
 
         private void EnsureValidMove(List<BoardEvent> events)

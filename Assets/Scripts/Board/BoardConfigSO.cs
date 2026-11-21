@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace ggo2026
@@ -14,11 +15,12 @@ namespace ggo2026
         [Min(1)]
         [SerializeField] private int height = 6;
 
-        [Tooltip("Colours a filler can roll when the pool is empty. Nothing selected falls back to every colour.")]
-        [SerializeField] private TileColour fillerColours = TileColourUtils.All;
+        [Tooltip("Tiles a filler can be when the pool is empty, picked at random. Use tiles with no effect, ideally one per colour. " +
+                 "If empty, fillers fall back to plain tiles of a random colour.")]
+        [SerializeField] private List<TileDataSO> fillerTiles = new List<TileDataSO>();
 
         public int Width => width;
         public int Height => height;
-        public TileColour FillerColours => TileColourUtils.Sanitize(fillerColours);
+        public IReadOnlyList<TileDataSO> FillerTiles => fillerTiles;
     }
 }

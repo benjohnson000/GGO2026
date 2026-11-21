@@ -58,13 +58,19 @@ namespace ggo2026
                 enabled = false;
                 return;
             }
+            if (settings.Palette == null) Debug.LogError($"{name}: {settings.name} has no palette assigned, so tiles will be white.", settings);
+            if (settings.TileMaterial == null || !settings.TileMaterial.HasProperty("_OutlineThickness"))
+            {
+                Debug.LogError($"{name}: {settings.name} needs a Tile Material using the GGO2026/Tile Outline shader, or tile outlines are not drawn.", settings);
+            }
 
             // InputManager lives in another scene and may wake after this object's OnEnable.
             TrySubscribe();
             if (!subscribed) Debug.LogError($"{name}: no InputManager found, so the board can't receive input.", this);
 
             System.Random rng = new System.Random();
-            TilePool pool = new TilePool(config.FillerColours, rng);
+            TilePool pool = new TilePool(config.FillerTiles, rng);
+            if (!pool.HasFillerTiles) Debug.LogWarning($"{name}: {config.name} has no valid filler tiles, so fillers use plain tiles of a random colour.", config);
             if (startingDeck != null) startingDeck.AddTo(pool);
 
             Board = new Board(config.Width, config.Height, pool, rng);
