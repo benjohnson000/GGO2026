@@ -12,6 +12,12 @@ Instructions for AI coding agents working in this repository.
 
 - [Assets/Scripts/SCRIPTING_GUIDELINES.md](Assets/Scripts/SCRIPTING_GUIDELINES.md): coding conventions, namespaces, patterns and the pre-commit checklist. Follow it for all C# work.
 - [Docs/DESIGN.md](Docs/DESIGN.md): what the game is and which decisions are settled or still open.
+- [Docs/ARCHITECTURE.md](Docs/ARCHITECTURE.md): scenes, boot flow, code layout and how data flows. Per-system docs are in [Docs/Systems/](Docs/Systems/); read the one for the system you are touching.
+
+## Keeping Docs Current
+
+- When you change how a system works (public API, event order, asset fields, scene setup), update its doc in `Docs/Systems/` in the same change.
+- When you add a new system, add a doc for it and link it from `README.md` and `Docs/ARCHITECTURE.md`.
 
 ## Layout
 
