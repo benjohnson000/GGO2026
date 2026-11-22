@@ -18,7 +18,9 @@ Selecting any tile asset shows:
    mask rules as the shader) into one small texture, recomposed only when an input changes, then drawn at
    the largest whole-pixel scale that fits (crisp at any display scaling). **Randomize** picks a random
    colour, shape, pattern (or none) and icon.
-2. **Name** (with **Rename Asset**), **Colour**, and a disabled **Effect** field ("Not implemented yet").
+2. **Name** (with **Rename Asset**), **Colour**, and the **Effects** list. Use **+** / **-** to add and remove
+   entries and drag to reorder; each entry's type picker (Animancer's polymorphic drawer) chooses the effect,
+   and its tuning fields appear under it. See [Board › Tile effects](Board.md#tile-effects).
 3. **Shape** picker â€” click a cell in the grid of slices from `tile_shapes.png`.
 4. **Pattern** picker â€” slices from `tile_patterns.png` followed by every slice from `tile_shapes.png`
    (a shape works as a pattern too, e.g. a smaller inner shape), with a **None** cell. **Randomize** picks

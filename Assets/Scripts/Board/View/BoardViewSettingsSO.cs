@@ -1,3 +1,4 @@
+using benjohnson;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -34,12 +35,44 @@ namespace ggo2026
         [Min(0.01f)]
         [SerializeField] private float popDuration = 0.15f;
 
+        [Tooltip("Seconds between one tile starting to pop and the next, so cleared tiles trigger one at a time. " +
+                 "A tile's combat effects play as it disappears. Tiles hit by a line clear follow its blast instead. 0 pops everything at once.")]
+        [Min(0f)]
+        [SerializeField] private float popInterval = 0.05f;
+
         [Tooltip("Fall speed in cells per second.")]
         [Min(0.1f)]
         [SerializeField] private float fallSpeed = 12f;
 
         [Min(0.01f)]
         [SerializeField] private float shuffleDuration = 0.4f;
+
+        [Header("Line Blast")]
+        [Tooltip("Optional. One arm of a striped tile's blast, drawn pointing along +X. Without it, pops still follow the blast's timing.")]
+        [SerializeField] private LineBlast lineBlastPrefab;
+
+        [Tooltip("Blast speed in cells per second. A tile starts to pop when the blast reaches its centre.")]
+        [Min(0.1f)]
+        [SerializeField] private float lineBlastSpeed = 20f;
+
+        [Tooltip("Seconds the blast takes to fade after reaching the board's edge.")]
+        [Min(0f)]
+        [SerializeField] private float lineBlastFadeTime = 0.15f;
+
+        [Header("Audio")]
+        [Tooltip("Optional. Played once per tile as it starts to pop. Use its Min Interval to thin out very fast clears.")]
+        [SerializeField] private SoundProfileSO popSound;
+
+        [Tooltip("Pitch added for each successive pop in one clear, so a chain rises. 0 = flat.")]
+        [Min(0f)]
+        [SerializeField] private float popPitchStep = 0.04f;
+
+        [Tooltip("Highest pitch multiplier the rising pops reach.")]
+        [Min(1f)]
+        [SerializeField] private float popPitchMax = 1.6f;
+
+        [Tooltip("Optional. Played once per line blast, as it launches.")]
+        [SerializeField] private SoundProfileSO lineBlastSound;
 
         [Header("Input")]
         [Tooltip("How far the pointer must drag, as a fraction of a cell, before a swap triggers.")]
@@ -53,8 +86,16 @@ namespace ggo2026
         public PaletteSO Palette => tilePalette;
         public float SwapDuration => swapDuration;
         public float PopDuration => popDuration;
+        public float PopInterval => popInterval;
         public float FallSpeed => fallSpeed;
         public float ShuffleDuration => shuffleDuration;
         public float DragThreshold => dragThreshold;
+        public SoundProfileSO PopSound => popSound;
+        public float PopPitchStep => popPitchStep;
+        public float PopPitchMax => popPitchMax;
+        public LineBlast LineBlastPrefab => lineBlastPrefab;
+        public float LineBlastSpeed => lineBlastSpeed;
+        public float LineBlastFadeTime => lineBlastFadeTime;
+        public SoundProfileSO LineBlastSound => lineBlastSound;
     }
 }

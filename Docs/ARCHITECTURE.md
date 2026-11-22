@@ -11,8 +11,9 @@ For what the game *is*, see [DESIGN.md](DESIGN.md). For coding conventions, see
 | `Assets/Scripts/Board/` | `ggo2026` | Grid rules: `Board`, `MatchFinder`, `MatchGroup`, `MatchShape`, `BoardConfigSO`; `Combos/` for combo rules | [Board](Systems/Board.md) |
 | `Assets/Scripts/Board/Events/` | `ggo2026` | `BoardEvent` subclasses the board emits | [Board](Systems/Board.md#board-events) |
 | `Assets/Scripts/Board/View/` | `ggo2026` | `BoardView`, `TileView`, view states, palette and view settings | [Board View](Systems/BoardView.md) |
-| `Assets/Scripts/Tiles/` | `ggo2026` | `Tile`, `TilePool`, `TileDataSO`, `StartingDeckSO`, `TileColour` | [Tiles and Deck](Systems/TilesAndDeck.md) |
+| `Assets/Scripts/Tiles/` | `ggo2026` | `Tile`, `TilePool`, `TileDataSO`, `StartingDeckSO`, `TileColour`; `Effects/` for `TileEffect` and subclasses | [Tiles and Deck](Systems/TilesAndDeck.md) |
 | `Assets/Scripts/Combat/` | `ggo2026` | `Combat`, `Combatant`, actions, events, listeners, statuses, `CombatantView`, `EncounterView` | [Combat](Systems/Combat.md) |
+| `Assets/Scripts/Encounter/` | `ggo2026` | `Encounter` turn flow, `EnemyDataSO`, `EnemyIntent`; `Intents/` for `IntentAction` and subclasses | [Encounter](Systems/Encounter.md) |
 | `Assets/Scripts/Editor/` | `ggo2026` | Tile inspector and Tile Editor window (editor-only assembly) | [Tile Editor](Systems/TileEditor.md) |
 | `Assets/Scripts/Utilities/` | `benjohnson` | Game-agnostic infrastructure | [Utilities](Systems/Utilities.md) |
 | `Assets/Art/Shaders/` | â€“ | `GGO2026/Tile Outline` sprite shader | [Board View](Systems/BoardView.md#tile-outline-shader) |
@@ -90,18 +91,21 @@ Built:
 
 - Grid rules: drag-to-swap, invalid-swap bounce, matches incl. 2x2 squares and L/T merging, gravity, refill, cascades,
   no-match initial fill, reshuffle when no moves remain.
-- Combo tiles: match-shape priority, temporary combo tiles (4-line → Row Clearer) from `BoardConfigSO` combo rules.
+- Combo tiles: match-shape priority, temporary combo tiles (4-line → Striped) from `BoardConfigSO` combo rules.
+- Tile effects: an ordered `[SerializeReference] List<TileEffect>` on `TileDataSO` (any number per tile, edited with Animancer's polymorphic drawer), fired by the board when a tile is destroyed. Board effects `LineClearEffect` (striped) and `ColourBombEffect` (fires on swap); combat effects `DealDamageEffect`, `GainBlockEffect`, `HealEffect`, `ApplyStatusEffect`, which queue `CombatAction`s on the board's `Combat`.
 - Deck-as-pool with filler tiles when the pool is empty.
 - Placeholder visuals: outlined shape, pattern masked to the shape, and icon, each tinted from the palette by one shader.
 - Tile authoring tools in the editor.
 - Combat rules: health, block, damage pipeline, action queue, listener hooks, statuses (Poison), with
-  placeholder views and debug actions. See [Combat](Systems/Combat.md).
+  placeholder views, block and status icons, and debug actions. See [Combat](Systems/Combat.md).
+- Encounter flow: random weighted enemy intents with per-intent countdowns ticked by each accepted swap,
+  enemy and player turns, placeholder victory/defeat and restart. See [Encounter](Systems/Encounter.md).
 - Infrastructure: scene loading, transitions, input, audio managers, save/load.
 
 Not built yet (see [DESIGN.md â€º Open Questions](DESIGN.md#open-questions) before starting any of these):
 
-- Tile **effects** (`TileDataSO` has a placeholder comment only).
-- Encounter flow (turns), enemy intents, enemy tiles. Combat is not wired to the board yet.
+- Passive tile effects. Combat effects fire on destruction like board effects for now; whether that is the final trigger rule is an open question.
+- Stun and other statuses beyond Poison, enemy tiles, affixes, rewards after a win.
 - Charms.
 - Run state (a run's deck currently comes straight from a `StartingDeckSO`), rewards, map.
 - Audio is coded but `SFXManager` / `MusicManager` are not placed in any scene.

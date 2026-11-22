@@ -1,10 +1,12 @@
+using System.Collections.Generic;
+using Animancer;
 using UnityEngine;
 using UnityEngine.Serialization;
 
 namespace ggo2026
 {
     /// <summary>
-    /// Definition of a deck tile: what it matches as and how it looks. Effects will be added here later.
+    /// Definition of a tile: what it matches as, what it does (a list of <see cref="TileEffect"/>s) and how it looks.
     /// Visuals are composed at runtime (outlined shape, pattern masked to it, icon on top, each tinted from the palette), so no sprite is baked per tile.
     /// </summary>
     [CreateAssetMenu(menuName = "GGO2026/Tile", fileName = "new Tile")]
@@ -48,10 +50,17 @@ namespace ggo2026
         [Tooltip("Icon tint when the source is Override.")]
         [SerializeField] private Color iconColor = Color.white;
 
-        // Effect: not designed yet. See the Open Questions in Docs/DESIGN.md.
+        [Tooltip("What the tile does, fired in order when it is destroyed. Stored in this asset, so each tile keeps its own tuning values.")]
+        [SerializeReference, Polymorphic] private List<TileEffect> effects = new List<TileEffect>();
 
         public string DisplayName => string.IsNullOrEmpty(displayName) ? name : displayName;
         public TileColour Colour => colour;
+
+        /// <summary>
+        /// The tile's effects in firing order. Shared by every tile made from this asset.
+        /// May contain null entries (added in the inspector with no type picked); callers skip them.
+        /// </summary>
+        public IReadOnlyList<TileEffect> Effects => effects;
         public Sprite CustomSprite => customSprite;
         public bool HasCustomSprite => customSprite != null;
         public Sprite Shape => shape;

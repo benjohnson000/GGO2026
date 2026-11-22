@@ -29,7 +29,7 @@ namespace ggo2026
                 TileDataSO data = rule.GetTile(colour);
                 if (data == null) continue;
 
-                tile = Tile.CreateCombo(data, rule.Effect);
+                tile = Tile.CreateCombo(data);
                 return true;
             }
 

@@ -12,6 +12,13 @@ namespace ggo2026
     /// </summary>
     public class BoardView : StateMachine<EBoardState>
     {
+        /// <summary>A line clear whose blast has yet to launch in the current pop run.</summary>
+        private struct PendingBlast
+        {
+            public LineClearActivatedEvent Line;
+            public float StartTime;
+        }
+
         [SerializeField] private BoardConfigSO config;
 
         [Tooltip("Tiles in the pool at the start. Optional: with no deck every tile is a random-colour filler.")]
@@ -19,8 +26,14 @@ namespace ggo2026
 
         [SerializeField] private BoardViewSettingsSO settings;
 
+        [Tooltip("Optional. The fight tile effects such as damage and block act on; without it they do nothing.")]
+        [SerializeField] private EncounterView encounter;
+
         private readonly Dictionary<Tile, TileView> views = new Dictionary<Tile, TileView>();
         private List<BoardEvent> pendingEvents;
+
+        // The enemy's countdown and turn after a swap, shown once the swap's board events have played.
+        private List<CombatEvent> pendingTurnEvents;
 
         private Camera cam;
         private bool subscribed;
@@ -35,6 +48,11 @@ namespace ggo2026
         private readonly List<Vector3> moveTo = new List<Vector3>();
         private readonly List<float> moveDurations = new List<float>();
         private readonly List<TileView> popping = new List<TileView>();
+        private readonly List<float> popStartTimes = new List<float>();
+        private readonly List<PendingBlast> pendingBlasts = new List<PendingBlast>();
+
+        // Pops played so far in the current playback (one swap and all its cascades), for the rising pop pitch.
+        private int popChainCount;
 
         /// <summary>The board rules, or null before Start.</summary>
         public Board Board { get; private set; }
@@ -74,6 +92,8 @@ namespace ggo2026
             if (startingDeck != null) startingDeck.AddTo(pool);
 
             Board = new Board(config.Width, config.Height, pool, rng, new ComboTable(config.ComboRules));
+            // EncounterView builds its Combat in Awake, so it is ready here.
+            if (encounter != null) Board.Combat = encounter.Combat;
             Play(Board.Fill());
         }
 
@@ -110,11 +130,14 @@ namespace ggo2026
         }
 
         /// <summary>
-        /// Animates events in order. Consecutive destroy events pop together, and consecutive fall and spawn
+        /// Animates events in order. Consecutive destroy events pop one after another in rapid succession, and consecutive fall and spawn
         /// events drop together, so each cascade step reads as one beat.
         /// </summary>
         internal IEnumerator PlayEvents(List<BoardEvent> events)
         {
+            // Each playback is one swap with all its cascades, so the pop pitch keeps rising until it ends.
+            popChainCount = 0;
+
             int i = 0;
             while (i < events.Count)
             {
@@ -156,12 +179,22 @@ namespace ggo2026
                     i++;
                 }
             }
+
+            // Let every hit land before the enemy acts and before input returns.
+            while (encounter != null && encounter.IsPlaying) yield return null;
+
+            if (pendingTurnEvents != null)
+            {
+                List<CombatEvent> turnEvents = pendingTurnEvents;
+                pendingTurnEvents = null;
+                if (encounter != null) encounter.Play(turnEvents);
+            }
         }
 
         private static bool IsPopEvent(BoardEvent boardEvent)
         {
-            // Combo effects pop together with the match that set them off.
-            return boardEvent is MatchEvent || boardEvent is TileDestroyedEvent || boardEvent is ComboActivatedEvent;
+            // Tiles hit by effects pop together with the match that set them off.
+            return boardEvent is MatchEvent || boardEvent is TileDestroyedEvent || boardEvent is TileEffectActivatedEvent;
         }
 
         private static bool IsFallEvent(BoardEvent boardEvent)
@@ -187,32 +220,206 @@ namespace ggo2026
             yield return RunMoves(false);
         }
 
+        /// <summary>
+        /// Pops a run's destroyed tiles one at a time, <see cref="BoardViewSettingsSO.PopInterval"/> apart, in the order
+        /// the board resolved them. Each tile shrinks over <see cref="BoardViewSettingsSO.PopDuration"/> from its own
+        /// start, so pops overlap. Tiles hit by a line clear pop as its blast reaches them instead.
+        /// A tile's combat results play as soon as it has disappeared.
+        /// </summary>
         private IEnumerator AnimatePop(List<BoardEvent> events, int start, int end)
         {
-            popping.Clear();
-            for (int i = start; i < end; i++)
-            {
-                if (events[i] is TileDestroyedEvent destroyed && views.TryGetValue(destroyed.Tile, out TileView view))
-                {
-                    popping.Add(view);
-                    views.Remove(destroyed.Tile);
-                }
-            }
-
-            if (popping.Count == 0) yield break;
+            // Times are worked out up front, so the rhythm doesn't drift with frame rate.
+            float blastsEnd = SchedulePops(events, start, end);
 
             Vector3 startScale = Vector3.one * (settings.CellSize * settings.TileScale);
             float elapsed = 0f;
-            while (elapsed < settings.PopDuration)
+            int started = 0;
+            // Effects have their own position in the run: the board logs them after all the destroys that queued them.
+            int nextEffect = start;
+
+            while (true)
             {
-                elapsed += Time.deltaTime;
-                float t = Mathf.Clamp01(elapsed / settings.PopDuration);
-                foreach (TileView view in popping) view.transform.localScale = startScale * (1f - t * t);
+                // Start every pop that is due; several can start in one frame.
+                while (started < popping.Count && elapsed >= popStartTimes[started])
+                {
+                    PlayPopSound(popChainCount++);
+                    started++;
+                }
+
+                LaunchDueBlasts(elapsed);
+
+                bool running = started < popping.Count;
+                for (int i = 0; i < started; i++)
+                {
+                    float t = Mathf.Clamp01((elapsed - popStartTimes[i]) / settings.PopDuration);
+                    popping[i].transform.localScale = startScale * (1f - t * t);
+                    if (t < 1f) running = true;
+                    else views.Remove(popping[i].Tile); // A tile leaves views only once it has fully disappeared.
+                }
+
+                nextEffect = PlayEffectsOfVanishedTiles(events, nextEffect, end);
+
+                if (!running && elapsed >= blastsEnd) break;
                 yield return null;
+                elapsed += Time.deltaTime;
             }
 
             foreach (TileView view in popping) Destroy(view.gameObject);
             popping.Clear();
+            popStartTimes.Clear();
+        }
+
+        /// <summary>
+        /// Fills the pop and blast times for a run and returns when the last blast reaches the board's edge.
+        /// Start times never decrease along the event list, so tiles vanish in the order their effects fired. That is
+        /// why a blast that hits tiles waits for every pop before it to have started.
+        /// </summary>
+        private float SchedulePops(List<BoardEvent> events, int start, int end)
+        {
+            popping.Clear();
+            popStartTimes.Clear();
+            pendingBlasts.Clear();
+
+            float nextBeat = 0f;
+            float lastPopStart = 0f;
+            float blastsEnd = 0f;
+            float blastStart = 0f;
+            LineClearActivatedEvent blast = null;
+
+            for (int i = start; i < end; i++)
+            {
+                if (events[i] is TileEffectActivatedEvent activated)
+                {
+                    // The board logs an effect's destroys straight after it, up to the next effect.
+                    blast = activated as LineClearActivatedEvent;
+                    if (blast == null) continue;
+
+                    blastStart = GetVanishTime(blast.Tile);
+                    // A blast with nothing left to hit can't reorder anything, so it needn't wait.
+                    bool hitsTiles = i + 1 < end && events[i + 1] is TileDestroyedEvent;
+                    if (hitsTiles) blastStart = Mathf.Max(blastStart, lastPopStart);
+
+                    pendingBlasts.Add(new PendingBlast { Line = blast, StartTime = blastStart });
+                    GetArmLengths(blast, out float back, out float forward);
+                    blastsEnd = Mathf.Max(blastsEnd, blastStart + Mathf.Max(back, forward) / settings.LineBlastSpeed);
+                }
+                else if (events[i] is TileDestroyedEvent destroyed && views.TryGetValue(destroyed.Tile, out TileView view))
+                {
+                    float popStart = nextBeat;
+                    if (blast != null)
+                    {
+                        int distance = Mathf.Abs(destroyed.Cell.x - blast.Cell.x) + Mathf.Abs(destroyed.Cell.y - blast.Cell.y);
+                        popStart = blastStart + distance / settings.LineBlastSpeed;
+                    }
+
+                    popping.Add(view);
+                    popStartTimes.Add(popStart);
+                    lastPopStart = popStart;
+                    nextBeat = popStart + settings.PopInterval;
+                }
+            }
+
+            return blastsEnd;
+        }
+
+        /// <summary>When a tile scheduled in this run will have disappeared.</summary>
+        private float GetVanishTime(Tile tile)
+        {
+            for (int i = 0; i < popping.Count; i++)
+            {
+                if (popping[i].Tile == tile) return popStartTimes[i] + settings.PopDuration;
+            }
+            return 0f;
+        }
+
+        /// <summary>Cells from a line clear's centre to the board's edge on each side.</summary>
+        private void GetArmLengths(LineClearActivatedEvent line, out float back, out float forward)
+        {
+            bool row = line.Axis == LineAxis.Row;
+            int index = row ? line.Cell.x : line.Cell.y;
+            int length = row ? Board.Width : Board.Height;
+            back = index + 0.5f;
+            forward = length - index - 0.5f;
+        }
+
+        private void LaunchDueBlasts(float elapsed)
+        {
+            // Not sorted by time: a blast with nothing to hit can launch before one logged earlier.
+            for (int i = pendingBlasts.Count - 1; i >= 0; i--)
+            {
+                PendingBlast pending = pendingBlasts[i];
+                if (elapsed < pending.StartTime) continue;
+
+                LaunchBlast(pending.Line, elapsed - pending.StartTime);
+                pendingBlasts.RemoveAt(i);
+            }
+        }
+
+        /// <summary>Plays a line clear's sound and spawns its two arms, <paramref name="age"/> seconds into their flight.</summary>
+        private void LaunchBlast(LineClearActivatedEvent line, float age)
+        {
+            PlaySound(settings.LineBlastSound);
+
+            LineBlast prefab = settings.LineBlastPrefab;
+            if (prefab == null) return;
+
+            GetArmLengths(line, out float back, out float forward);
+            Vector2 direction = line.Axis == LineAxis.Row ? Vector2.right : Vector2.up;
+            Vector3 origin = CellToLocal(line.Cell);
+            float speed = settings.LineBlastSpeed * settings.CellSize;
+            float fade = settings.LineBlastFadeTime;
+            Color colour = GetEffectColour(line.Tile);
+
+            LineBlast.Create(prefab, transform, origin, -direction, back * settings.CellSize, speed, fade, colour, age);
+            LineBlast.Create(prefab, transform, origin, direction, forward * settings.CellSize, speed, fade, colour, age);
+        }
+
+        /// <summary>
+        /// Sends combat results to the encounter, from <paramref name="next"/> up to the first effect whose tile is still
+        /// visible, and returns where it stopped. Tiles vanish in the order their effects fired, so this never holds a
+        /// vanished tile back, and combat events stay in the order they resolved.
+        /// </summary>
+        private int PlayEffectsOfVanishedTiles(List<BoardEvent> events, int next, int end)
+        {
+            for (; next < end; next++)
+            {
+                if (!(events[next] is TileEffectActivatedEvent activated) || activated.CombatEvents.Count == 0) continue;
+                if (views.ContainsKey(activated.Tile)) break;
+
+                // From the tile's cell, so hits can fly from the tile to their target.
+                if (encounter != null)
+                {
+                    Vector3 origin = transform.TransformPoint(CellToLocal(activated.Cell));
+                    encounter.Play(activated.CombatEvents, origin, GetEffectColour(activated.Tile));
+                }
+            }
+
+            return next;
+        }
+
+        /// <summary>The colour of a tile's blast and projectiles: the one its shape is drawn in.</summary>
+        private Color GetEffectColour(Tile tile)
+        {
+            // Only tiles with data have effects, so a tile that fired always has some.
+            return tile.Data.GetShapeColor(settings.Palette);
+        }
+
+        /// <summary>
+        /// Plays the pop sound for the <paramref name="index"/>th tile popped since the swap, pitched up a step per tile.
+        /// Silent with no sound profile (or no clips in it) or no SFXManager loaded.
+        /// </summary>
+        private void PlayPopSound(int index)
+        {
+            float pitch = Mathf.Min(1f + index * settings.PopPitchStep, settings.PopPitchMax);
+            PlaySound(settings.PopSound, pitch);
+        }
+
+        private static void PlaySound(SoundProfileSO sound, float pitch = 1f)
+        {
+            if (sound == null || !sound.HasClips) return;
+
+            SFXManager sfx = SFXManager.instance;
+            if (sfx != null) sfx.PlaySound(sound, pitch);
         }
 
         /// <summary>New combo tiles grow in at their cell, the reverse of a pop.</summary>
@@ -332,7 +539,7 @@ namespace ggo2026
 
         private bool CanAcceptInput()
         {
-            return Board != null && HasState && currentStateKey == EBoardState.Idle;
+            return Board != null && HasState && currentStateKey == EBoardState.Idle && (encounter == null || !encounter.IsOver);
         }
 
         private void OnPointerPressed(Vector2 screenPosition)
@@ -368,7 +575,16 @@ namespace ggo2026
             Vector2Int target = dragCell + direction;
             if (!Board.IsInBounds(target)) return;
 
-            Play(Board.TrySwap(dragCell, target));
+            List<BoardEvent> events = Board.TrySwap(dragCell, target);
+            // The swap has fully resolved, so the enemy's countdown ticks now (DESIGN.md › turn order).
+            // Passives will fire between the two once they exist.
+            if (encounter != null && IsAcceptedSwap(events)) pendingTurnEvents = encounter.AdvanceSwap();
+            Play(events);
+        }
+
+        private static bool IsAcceptedSwap(List<BoardEvent> events)
+        {
+            return events.Count > 0 && events[0] is SwapEvent swap && swap.Accepted;
         }
 
         private void OnPointerReleased(Vector2 screenPosition)

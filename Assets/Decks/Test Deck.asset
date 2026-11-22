@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9508ee4aa069c174985549e870d276ea, type: 3}
+  m_Name: Test Deck
+  m_EditorClassIdentifier: ggo2026::ggo2026.StartingDeckSO
+  entries:
+  - tile: {fileID: 11400000, guid: 40c494ca600736746a770d5aea7977e3, type: 2}
+    count: 25
+  - tile: {fileID: 11400000, guid: b5c64e186998a0240bcaa39f9b498a1b, type: 2}
+    count: 25
+  - tile: {fileID: 11400000, guid: 713def77d77629040b293e6edb7b4183, type: 2}
+    count: 25
+  - tile: {fileID: 11400000, guid: 74ac4761e81c3e54ebc6e065213ed1c9, type: 2}
+    count: 10
+  - tile: {fileID: 11400000, guid: a5e93feab0fe5f040b306db10f786661, type: 2}
+    count: 25
+  - tile: {fileID: 11400000, guid: 65eef48ba86d7c743b5c0569052e636d, type: 2}
+    count: 30
+  - tile: {fileID: 11400000, guid: a3ff67bc06bb29440a238736cf2376b2, type: 2}
+    count: 20
+  - tile: {fileID: 11400000, guid: e134ff08dd88f4142b8190dc18191c5f, type: 2}
+    count: 10
+  - tile: {fileID: 11400000, guid: 95466a1cdf497e94db066234dccf44f4, type: 2}
+    count: 20

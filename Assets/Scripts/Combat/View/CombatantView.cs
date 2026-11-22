@@ -1,5 +1,4 @@
-using System.Collections.Generic;
-using System.Text;
+using benjohnson;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -7,7 +6,7 @@ using UnityEngine.UI;
 namespace ggo2026
 {
     /// <summary>
-    /// Placeholder UI for one <see cref="Combatant"/>: name, health bar, block and a text list of statuses.
+    /// Placeholder UI for one <see cref="Combatant"/>: name, health bar, and a row of block and status icons.
     /// It shows the values from the events it is given, not the live combatant, so it stays in step with playback.
     /// Every reference is optional.
     /// </summary>
@@ -15,29 +14,41 @@ namespace ggo2026
     {
         [SerializeField] private TMP_Text nameText;
 
-        [Tooltip("An Image with Image Type set to Filled.")]
+        [Tooltip("Scaled on X by health / max health (0 = no health, 1 = full). Set its pivot to the end it should shrink toward, e.g. X = 0 to shrink toward the left.")]
         [SerializeField] private Image healthFill;
 
         [SerializeField] private TMP_Text healthText;
 
-        [Tooltip("Shown only while block is above 0.")]
+        [Tooltip("Optional separate block display, shown only while block is above 0. With neither this nor Block Text set, block is the first icon in the status row.")]
         [SerializeField] private GameObject blockRoot;
 
         [SerializeField] private TMP_Text blockText;
 
-        [Tooltip("Placeholder list of statuses and their stacks, until status icons exist.")]
-        [SerializeField] private TMP_Text statusText;
+        [Tooltip("Optional. Where status icons go. If empty, a row is created just below this view.")]
+        [SerializeField] private StatusRowView statusRow;
 
-        private readonly List<StatusDataSO> statusOrder = new List<StatusDataSO>();
-        private readonly Dictionary<StatusDataSO, int> stacks = new Dictionary<StatusDataSO, int>();
-        private readonly StringBuilder builder = new StringBuilder();
+        [Tooltip("Enemy only: the telegraphed intent and its countdown, e.g. \"Attack 6 in 3\". Empty while there is no intent.")]
+        [SerializeField] private TMP_Text intentText;
+
+        [Tooltip("Optional. Where projectiles from tiles land, e.g. the portrait. Defaults to this object's pivot.")]
+        [SerializeField] private Transform hitPoint;
+
+        [Tooltip("Optional. Played when this combatant loses health, as the hit is shown. Not played for hits fully absorbed by block.")]
+        [SerializeField] private SoundProfileSO damageSound;
 
         private int health;
         private int maxHealth;
         private int block;
         private bool dead;
+        private string intent;
+        private int countdown;
 
         public Combatant Combatant { get; private set; }
+
+        /// <summary>Where projectiles from tiles aimed at this combatant land.</summary>
+        public Transform HitPoint => hitPoint != null ? hitPoint : transform;
+
+        private bool ShowsBlockInRow => blockRoot == null && blockText == null;
 
         /// <summary>Shows <paramref name="combatant"/> as it is right now.</summary>
         public void Bind(Combatant combatant)
@@ -47,14 +58,16 @@ namespace ggo2026
             maxHealth = combatant.MaxHealth;
             block = combatant.Block;
             dead = combatant.IsDead;
+            intent = null;
+            countdown = combatant.IntentCountdown;
 
-            statusOrder.Clear();
-            stacks.Clear();
-            foreach (StatusEffect status in combatant.Statuses)
-            {
-                statusOrder.Add(status.Data);
-                stacks[status.Data] = status.Stacks;
-            }
+            if (statusRow == null) statusRow = StatusRowView.Create(transform);
+            TMP_Text fontSource = healthText != null ? healthText : nameText;
+            statusRow.ResetRow(fontSource != null ? fontSource.font : null);
+
+            // What is already active appears without animating.
+            if (ShowsBlockInRow) statusRow.SetBlock(block, false);
+            foreach (StatusEffect status in combatant.Statuses) statusRow.SetStatus(status.Data, status.Stacks, false);
 
             Refresh();
         }
@@ -69,6 +82,7 @@ namespace ggo2026
                 case DamageEvent damage:
                     health = damage.HealthAfter;
                     block = damage.BlockAfter;
+                    if (damage.HealthLost > 0) PlaySound(damageSound);
                     break;
                 case HealedEvent healed:
                     health = healed.HealthAfter;
@@ -77,10 +91,17 @@ namespace ggo2026
                     block = blockChanged.NewBlock;
                     break;
                 case StatusChangedEvent status:
-                    SetStacks(status.Status, status.NewStacks);
+                    statusRow.SetStatus(status.Status, status.NewStacks, true);
                     break;
                 case CombatantDiedEvent _:
                     dead = true;
+                    intent = null;
+                    break;
+                case IntentChangedEvent intentChanged:
+                    intent = intentChanged.Intent?.Describe();
+                    break;
+                case CountdownChangedEvent countdownChanged:
+                    countdown = countdownChanged.NewCountdown;
                     break;
                 default:
                     return;
@@ -89,17 +110,12 @@ namespace ggo2026
             Refresh();
         }
 
-        private void SetStacks(StatusDataSO status, int count)
+        /// <summary>Plays an optional sound. Silent if it is unassigned, has no clips, or no SFXManager is loaded.</summary>
+        private static void PlaySound(SoundProfileSO sound)
         {
-            if (count <= 0)
-            {
-                statusOrder.Remove(status);
-                stacks.Remove(status);
-                return;
-            }
-
-            if (!stacks.ContainsKey(status)) statusOrder.Add(status);
-            stacks[status] = count;
+            if (sound == null || !sound.HasClips) return;
+            SFXManager sfx = SFXManager.instance;
+            if (sfx != null) sfx.PlaySound(sound);
         }
 
         private void Refresh()
@@ -107,21 +123,18 @@ namespace ggo2026
             if (Combatant == null) return;
 
             if (nameText != null) nameText.text = dead ? $"{Combatant.DisplayName} (defeated)" : Combatant.DisplayName;
-            if (healthFill != null) healthFill.fillAmount = maxHealth > 0 ? (float)health / maxHealth : 0f;
+            if (healthFill != null)
+            {
+                Transform fill = healthFill.transform;
+                Vector3 scale = fill.localScale;
+                scale.x = maxHealth > 0 ? Mathf.Clamp01((float)health / maxHealth) : 0f;
+                fill.localScale = scale;
+            }
             if (healthText != null) healthText.text = $"{health} / {maxHealth}";
             if (blockRoot != null) blockRoot.SetActive(block > 0);
             if (blockText != null) blockText.text = block.ToString();
-
-            if (statusText != null)
-            {
-                builder.Clear();
-                foreach (StatusDataSO status in statusOrder)
-                {
-                    if (builder.Length > 0) builder.Append('\n');
-                    builder.Append(status.DisplayName).Append(' ').Append(stacks[status]);
-                }
-                statusText.text = builder.ToString();
-            }
+            if (intentText != null) intentText.text = string.IsNullOrEmpty(intent) ? string.Empty : $"{intent} in {countdown}";
+            if (ShowsBlockInRow) statusRow.SetBlock(block, true);
         }
     }
 }

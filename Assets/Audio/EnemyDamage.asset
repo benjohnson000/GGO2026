@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6cd3d0b024115c841b264ceb98b11c61, type: 3}
+  m_Name: EnemyDamage
+  m_EditorClassIdentifier: ggo2026::benjohnson.SoundProfileSO
+  clips:
+  - {fileID: 8300000, guid: a7f2347d0c0658a45b6719eb86611b04, type: 3}
+  - {fileID: 8300000, guid: 8c506189ecd5b434395dcd2227e9ae98, type: 3}
+  - {fileID: 8300000, guid: a442b73335b49aa478a29d9234525364, type: 3}
+  - {fileID: 8300000, guid: 673633d28192d714f87a92985ccf285f, type: 3}
+  - {fileID: 8300000, guid: 1dbd05c880ff64a44af926daa53fabd9, type: 3}
+  volume: 0.6
+  minPitch: 1
+  maxPitch: 1
+  minInterval: 0

@@ -12,7 +12,7 @@ from here.** Use these before writing new infrastructure.
 | [Input](#input) | `InputManager.cs` | Pointer press / move / release events |
 | [Audio](#audio) | `Sound/` | One-shot SFX and looping music |
 | [Save/load](#saveload) | `SaveLoad/SaveLoadSystem.cs` | JSON files in `persistentDataPath` |
-| [Misc](#misc) | `Utilities.cs`, `CanvasCameraAssigner.cs`, `MatchWorldCanvasToCamera.cs`, `DisableOnStart.cs` | Small helpers |
+| [Misc](#misc) | `Utilities.cs`, `CanvasCameraAssigner.cs`, `MatchWorldCanvasToCamera.cs`, `DisableOnStart.cs`, `RendererTint.cs` | Small helpers |
 
 ## Singleton<T>
 
@@ -121,17 +121,49 @@ Vector2 pos = InputManager.instance.PointerPosition;
 
 ## Audio
 
-Both are `Singleton`s that need an `AudioSource` assigned. **Neither is placed in a scene yet** — add them
-to `GameUtilities` (or another utility scene) before use.
+Both are `Singleton`s. `SFXManager` is on the **SFX Manager** object in `GameUtilities`. `MusicManager`
+needs an `AudioSource` assigned and **is not placed in a scene yet**; add it to `GameUtilities` before use.
 
 ```csharp
-[SerializeField] private SoundProfile matchSound;   // clips[] + volume, random clip per play
+[SerializeField] private SoundProfileSO matchSound; // asset: clips[], volume, pitch range, min interval
 SFXManager.instance.PlaySound(matchSound);
+SFXManager.instance.PlaySound(matchSound, 1.2f);    // pitch multiplier, e.g. rising per pop in a chain
 SFXManager.instance.PlaySoundAtPosition(matchSound, worldPos);
 
 MusicManager.instance.PlayMusic(clip, 0.8f);  // loops; per-track volume × master volume
 MusicManager.instance.SetMusicVolume(0.5f);
 ```
+
+### SFXManager
+
+- **Voices.** In `Awake` it creates `voiceCount` (default 8) child objects named `Voice n`, each with an
+  `AudioSource`. Every sound takes a free voice; when all are busy, the one that started longest ago is
+  cut off and reused. Sounds played in quick succession therefore overlap, but never more than
+  `voiceCount` at once.
+- **`effectsSource`** is an optional template: each voice copies its output mixer group, priority and 3D
+  distance settings. It is never played itself.
+- **Pitch** is set per voice: a random value between the profile's `minPitch` and `maxPitch`, times the
+  `pitch` argument.
+- **`PlaySound`** is 2D (`spatialBlend` 0). **`PlaySoundAtPosition`** moves the voice to the point and
+  plays fully 3D (`spatialBlend` 1).
+- **Volume:** profile `volume` × master `volume` (`SetVolume`), applied when a sound starts.
+- **Missing clips:** a null profile or one with no clips plays nothing and warns once (per profile).
+
+### SoundProfileSO
+
+`Sound/SoundProfileSO.cs`. **Create › Sound Profile**. One asset per sound, referenced by whatever plays it,
+so the same sound can be reused (e.g. one pop sound for the board and a UI button). Check `HasClips`
+before playing an optional sound to stay silent without a warning.
+
+`MinInterval` is tracked **per asset**, so it applies across everything sharing that profile: two scripts
+playing the same profile in the same frame play it once.
+
+| Field | Default | Meaning |
+|---|---|---|
+| `clips` | – | One is picked at random per play |
+| `volume` | 0.75 | Per-sound volume |
+| `minPitch`, `maxPitch` | 1, 1 | Random pitch range per play |
+| `minInterval` | 0 | Seconds before the profile can play again; sooner plays are skipped. Use it to thin out very rapid sounds such as pops |
 
 ## Save/load
 
@@ -159,3 +191,4 @@ SaveLoadSystem.Exists("run"); SaveLoadSystem.Delete("run");
 | `CanvasCameraAssigner` | Waits for `Camera.main` (which lives in the `Camera` scene) and assigns it to the canvas |
 | `MatchWorldCanvasToCamera` | `[ExecuteAlways]` — sizes/centres a world-space canvas to fill the camera view |
 | `DisableOnStart` | Deactivates its GameObject in `Start` (handy for editor-only helpers) |
+| `RendererTint.Multiply(root, tint)` | Multiplies the RGB of sprites, trail gradients and single-colour particles under a freshly spawned object, keeping their alpha. Multiplies again if called again |

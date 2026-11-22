@@ -28,6 +28,7 @@ namespace ggo2026
         private SerializedProperty icon;
         private SerializedProperty iconColorSource;
         private SerializedProperty iconColor;
+        private SerializedProperty effects;
 
         private void OnEnable()
         {
@@ -43,6 +44,7 @@ namespace ggo2026
             icon = serializedObject.FindProperty("icon");
             iconColorSource = serializedObject.FindProperty("iconColorSource");
             iconColor = serializedObject.FindProperty("iconColor");
+            effects = serializedObject.FindProperty("effects");
 
             // Tiles made before names were synced may still be empty; TileNameSync handles new and renamed assets.
             if (EditorUtility.IsPersistent(target) && string.IsNullOrEmpty(displayName.stringValue))
@@ -83,10 +85,7 @@ namespace ggo2026
             DrawNameField();
             EditorGUILayout.PropertyField(colour);
             bool nameChanged = EditorGUI.EndChangeCheck();
-            using (new EditorGUI.DisabledScope(true))
-            {
-                EditorGUILayout.TextField("Effect", "Not implemented yet");
-            }
+            DrawEffectsField();
 
             EditorGUILayout.Space();
             EditorGUILayout.PropertyField(customSprite);
@@ -107,6 +106,15 @@ namespace ggo2026
 
             // Renaming mid-GUI would invalidate this inspector's layout, so do it after the frame.
             if (nameChanged) RenameLater();
+        }
+
+        /// <summary>
+        /// The effect list. Each entry is drawn by Animancer's polymorphic drawer (a type picker plus that effect's
+        /// tuning fields), so any number of effects can be added, removed and reordered.
+        /// </summary>
+        private void DrawEffectsField()
+        {
+            EditorGUILayout.PropertyField(effects, new GUIContent("Effects", "What the tile does, fired in order when it is destroyed. Values are stored on this tile."), true);
         }
 
         private void RenameLater()

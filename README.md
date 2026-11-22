@@ -24,6 +24,7 @@ matches; between encounters, build the deck of tiles that fills the grid.
 | [Docs/Systems/BoardView.md](Docs/Systems/BoardView.md) | Input, event playback, tile visuals, outline shader, view settings |
 | [Docs/Systems/TilesAndDeck.md](Docs/Systems/TilesAndDeck.md) | Tile data, the deck-as-pool, fillers, colours |
 | [Docs/Systems/Combat.md](Docs/Systems/Combat.md) | Health, block, statuses, damage pipeline, action queue, listeners |
+| [Docs/Systems/Encounter.md](Docs/Systems/Encounter.md) | Turn flow, enemy intents and countdowns, victory/defeat |
 | [Docs/Systems/TileEditor.md](Docs/Systems/TileEditor.md) | Tile inspector and Tile Editor window |
 | [Docs/Systems/Utilities.md](Docs/Systems/Utilities.md) | Singleton, state machine, scenes, transitions, input, audio, save/load |
 | [Assets/Scripts/SCRIPTING_GUIDELINES.md](Assets/Scripts/SCRIPTING_GUIDELINES.md) | C# conventions and pre-commit checklist |

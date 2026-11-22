@@ -41,6 +41,9 @@ namespace ggo2026
         /// <summary>A turn started, after that combatant's block was removed.</summary>
         public virtual void OnTurnStarted(Combat combat, Combatant combatant) { }
 
+        /// <summary>An intent countdown changed: ticked down by a swap, delayed (e.g. by stun) or set for a new intent.</summary>
+        public virtual void OnCountdownChanged(Combat combat, CountdownChangedEvent countdownEvent) { }
+
         public virtual void OnCombatantDied(Combat combat, CombatantDiedEvent diedEvent) { }
     }
 }

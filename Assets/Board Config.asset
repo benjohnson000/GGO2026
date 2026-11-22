@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 69154bdc56004414a86b680fd630e199, type: 3}
   m_Name: Board Config
   m_EditorClassIdentifier: ggo2026::ggo2026.BoardConfigSO
-  width: 6
-  height: 8
+  width: 5
+  height: 6
   fillerTiles:
   - {fileID: 11400000, guid: 40c494ca600736746a770d5aea7977e3, type: 2}
   - {fileID: 11400000, guid: a5e93feab0fe5f040b306db10f786661, type: 2}
@@ -22,10 +22,12 @@ MonoBehaviour:
   - {fileID: 11400000, guid: b5c64e186998a0240bcaa39f9b498a1b, type: 2}
   comboRules:
   - shape: 2
-    effect: 1
     tiles:
     - {fileID: 11400000, guid: 6bbe01b866525e64f8a8abb31f90a52d, type: 2}
     - {fileID: 11400000, guid: a8b18215e6aff4e4984750da956f9248, type: 2}
     - {fileID: 11400000, guid: 7f652abe77bf02c479954aec3e56a1b8, type: 2}
     - {fileID: 11400000, guid: 135cfaf006f4caa448e6f9fd36d36e3b, type: 2}
     - {fileID: 11400000, guid: 65383e2ad780b0b47b8506f49ce49678, type: 2}
+  - shape: 4
+    tiles:
+    - {fileID: 11400000, guid: 3b3e54a9f9a97024b90c0abb52b9a8fb, type: 2}

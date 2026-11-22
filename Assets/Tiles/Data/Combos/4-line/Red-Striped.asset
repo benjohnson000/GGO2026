@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a022e14baa939ff4a87135978a945ed9, type: 3}
+  m_Name: Red-Striped
+  m_EditorClassIdentifier: ggo2026::ggo2026.TileDataSO
+  displayName: Striped
+  colour: 1
+  customSprite: {fileID: 0}
+  shape: {fileID: -323353065, guid: a1709d09918df0e4399d94d21e026674, type: 3}
+  shapeColorSource: 1
+  shapeColor: {r: 1, g: 1, b: 1, a: 1}
+  pattern: {fileID: -1911495146, guid: 3d3c65a4bfad5684e8b0d636b70514b3, type: 3}
+  patternColorSource: 0
+  patternColor: {r: 1, g: 1, b: 1, a: 1}
+  icon: {fileID: 0}
+  iconColorSource: 4
+  iconColor: {r: 1, g: 1, b: 1, a: 1}
+  effects:
+  - rid: 7267738266728398925
+  references:
+    version: 2
+    RefIds:
+    - rid: 7267738266728398925
+      type: {class: LineClearEffect, ns: ggo2026, asm: ggo2026}
+      data:
+        clearAcrossSwap: 0

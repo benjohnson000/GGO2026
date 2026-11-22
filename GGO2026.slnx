@@ -1,4 +1,7 @@
 ﻿<Solution>
+  <Project Path="Kybernetik.Animancer.csproj" />
+  <Project Path="Kybernetik.Animancer.Editor.csproj" />
   <Project Path="ggo2026.csproj" />
   <Project Path="ggo2026.Editor.csproj" />
+  <Project Path="Kybernetik.Animancer.FSM.csproj" />
 </Solution>

@@ -19,6 +19,14 @@ MonoBehaviour:
   tilePalette: {fileID: 11400000, guid: 2c39ddda4e672704888d53aaa6a36cac, type: 2}
   swapDuration: 0.15
   popDuration: 0.15
+  popInterval: 0.05
   fallSpeed: 12
   shuffleDuration: 0.6
+  lineBlastPrefab: {fileID: 6407832963667842126, guid: 9de1d58f1edc30c44982ebc2d2a053c3, type: 3}
+  lineBlastSpeed: 20
+  lineBlastFadeTime: 0.15
+  popSound: {fileID: 11400000, guid: fe72ec12c107b3941b60b3e1c0f4fe64, type: 2}
+  popPitchStep: 0.018
+  popPitchMax: 1.6
+  lineBlastSound: {fileID: 0}
   dragThreshold: 0.35

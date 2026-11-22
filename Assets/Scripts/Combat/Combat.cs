@@ -208,6 +208,20 @@ namespace ggo2026
             foreach (CombatListener listener in GetListeners(combatant)) listener.OnTurnStarted(this, combatant);
         }
 
+        internal void ResolveCountdown(Combatant target, int newCountdown)
+        {
+            if (!IsInFight(target) || target.IsDead) return;
+
+            newCountdown = Mathf.Max(0, newCountdown);
+            int oldCountdown = target.IntentCountdown;
+            if (newCountdown == oldCountdown) return;
+
+            target.IntentCountdown = newCountdown;
+            CountdownChangedEvent countdownEvent = new CountdownChangedEvent(target, oldCountdown, newCountdown);
+            Log(countdownEvent);
+            foreach (CombatListener listener in GetListeners(target)) listener.OnCountdownChanged(this, countdownEvent);
+        }
+
         private void ChangeBlock(Combatant target, int newBlock)
         {
             int oldBlock = target.Block;

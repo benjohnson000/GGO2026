@@ -21,8 +21,8 @@ Each tile has:
 
 | Property | Meaning |
 |---|---|
-| **Colour** | What the tile matches with. Every tile has exactly one colour. |
-| **Effect** | What happens when the tile is matched (damage, money, explode, etc.). |
+| **Colour** | What the tile matches with. A tile has one colour, or is colourless and never matches. Decided: colourless tiles are allowed in decks (but not as fillers). |
+| **Effects** | What happens when the tile is matched (damage, money, explode, etc.). Decided: a tile can have any number of effects, which fire in the order listed. |
 | **Shape** | Visual identity of the effect. |
 | **Pattern** | Optional fill pattern drawn inside the shape, under the icon. |
 | **Icon** | Optional symbol drawn in front of the shape. Its role versus shape is still open. |
@@ -126,7 +126,7 @@ The starting deck contains many tiles of each colour. These **plain tiles** have
 ### Swapping and resolving
 
 - **Input:** drag a tile toward a neighbour to swap them (mouse or touch). One swap per drag. No tap-tap selection.
-- **Invalid swaps:** a swap that makes no match animates back and does not count as a turn.
+- **Invalid swaps:** a swap that makes no match animates back and does not count as a turn. Exception: swapping a colour bomb is always valid.
 - **Matches:** 3 or more tiles of the same colour in a row or column, or a 2x2 square of one colour. Runs and squares that share a tile (L, T and block shapes) count as one match group.
 - **Resolving:** matched tiles are destroyed and return to the pool, tiles fall down, and empty cells are refilled from the pool. This repeats until no matches remain. Each repeat is a cascade.
 
@@ -136,7 +136,17 @@ The starting deck contains many tiles of each colour. These **plain tiles** have
 - **One combo per match group**, from its highest-priority shape. Priority, highest first: 5+ in a line, T/L (a row and a column of 3+ sharing a tile), 4 in a line, 2x2 square. Plain 3-matches make no combo.
 - The combo takes the match's colour and appears on the tile the player moved if it is part of the match; otherwise (cascades) at a fixed cell of the shape.
 - **Temporary:** combo tiles never join the deck. When destroyed they are gone for good. The matched tiles still return to the pool as usual.
-- **4 in a line** makes a **Row Clearer**, which destroys its whole row when destroyed. It always clears the row, whatever direction the match was.
+- **4 in a line** makes a **Striped** tile (Line Clear effect), which destroys its whole row or column when destroyed. The line is chosen when it fires:
+  - Matched by the player's swap: as in Candy Crush, a sideways swap clears the column and an up/down swap clears the row.
+  - Hit by another line clear: the other direction (a row clear hitting it makes it clear its column), so chains reach new tiles.
+  - Otherwise (cascades): random.
+  - If the chosen line has no tiles left (e.g. two Striped tiles matched in the same line), it clears the other direction instead of doing nothing.
+  - Decided: the line is destroyed from the Striped tile outward, so effects in it fire nearest first. At equal distance, left fires before right and below before above.
+- **Colour bomb** (Colour Bomb effect) is **colourless**: it never matches. Swapping it with any neighbour is always a valid move (it counts as a turn) and destroys every tile of that neighbour's colour.
+  - Destroyed without being swapped (e.g. hit by a line clear): destroys every tile of the most common colour on the board.
+  - Swapped with another colour bomb: destroys the whole board.
+  - Which match shape makes it is set in the board config's combo rules (5 in a line is the natural fit).
+- What a combo does is the combo tile's own effect, not a board setting.
 - Not decided yet: what the square, T/L and 5-line combos do, and whether swapping two combos together does something special.
 - **Initial fill:** avoids creating matches where the pool allows it.
 - **No valid moves:** the tiles already on the board are reshuffled. No tiles are drawn or returned.
@@ -150,6 +160,7 @@ The starting deck contains many tiles of each colour. These **plain tiles** have
 ### Health, block and statuses
 
 - **Block** is the agreed name (not "shield"). Block absorbs damage before health.
+- **Turns:** the enemy only gets a turn when its intent fires (its countdown reaches 0). Swaps that only tick the countdown are not enemy turns. The player's turn starts right after the enemy's turn, so each side gets one turn per enemy action.
 - Block is lost at the **start of its owner's turn**, so the player's block lasts until the enemy has acted. Charms may change this (e.g. "only lose 50% of your block at the start of your turn").
 - Status effects (poison, stun, etc.) are a major part of the game and can be on either side.
 - **Poison:** ticks at the start of its owner's turn (so enemy poison ticks at the start of the enemy turn), dealing damage equal to its stacks, then loses a configurable number of stacks (1 by default).
@@ -159,6 +170,9 @@ The starting deck contains many tiles of each colour. These **plain tiles** have
 ### Enemy intents
 
 - The enemy telegraphs its next action and a countdown in swaps (e.g. "Attack 8 in 3 swaps").
+- **Each intent has its own countdown.** Every accepted swap ticks it down by 1; at 0 the intent fires and the enemy picks its next one.
+- For now enemies pick their next intent **at random**, by weight. Fixed or scripted patterns may come later.
+- **Stun adds swaps** to the enemy's countdown, delaying its intent.
 - The player chooses whether to race the damage, defend, or deal with the threat. Player health makes defensive effects (block, heal) meaningful.
 
 ### Enemy tiles
@@ -217,14 +231,13 @@ The starting deck contains many tiles of each colour. These **plain tiles** have
 
 ## Open Questions
 
-- What counts as a turn: does the enemy get a turn on every swap (when its countdown ticks) or only when its intent fires? This decides when block is lost and when poison ticks.
 - Does poison damage ignore block? (The poison asset has a toggle, on by default.)
 - Enemy tiles: does black match with other black tiles? Are enemy tiles removed from the pool when the encounter ends?
 - What boss phases change, given that board-shifting enemy actions are out of scope.
 - Enemy roster and affix list for the jam.
 - How charms are earned (encounter rewards, shop, elites, bosses) and whether there is a charm limit.
 - What effects does the reward screen offer, and how does the player remove tiles?
-- Effect trigger order within a match and how cascades interact with match effects. (Passive timing is decided; see Match and passive effects.)
+- Effect trigger order within a match and how cascades interact with match effects. (The order along a line clear is decided; see Combo tiles.) (Passive timing is decided; see Match and passive effects.)
 - Player-facing name for match effects: "Activated" or "Match". "Match effect" is used in this doc for now.
 - Shift mechanics beyond the basic swap (the theme): special tiles, abilities, or other ways to rearrange the board.
 - Combo tiles: effects for the square, T/L and 5-line combos; combo + combo swaps; whether tiles destroyed by a combo trigger their match effects.

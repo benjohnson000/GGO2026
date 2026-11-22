@@ -24,3 +24,12 @@ MonoBehaviour:
   icon: {fileID: 726092508977080722, guid: 772c731695356654bb3255554ec94552, type: 3}
   iconColorSource: 4
   iconColor: {r: 1, g: 1, b: 1, a: 1}
+  effects:
+  - rid: 7267738266728399128
+  references:
+    version: 2
+    RefIds:
+    - rid: 7267738266728399128
+      type: {class: DealDamageEffect, ns: ggo2026, asm: ggo2026}
+      data:
+        amount: 3

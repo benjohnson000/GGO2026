@@ -17,6 +17,12 @@ namespace ggo2026
         public int Block { get; internal set; }
         public bool IsDead { get; internal set; }
 
+        /// <summary>
+        /// Swaps until this combatant's intent fires. Only enemies use it; the player acts every swap.
+        /// Changed only through <see cref="SetCountdownAction"/> and <see cref="ChangeCountdownAction"/>.
+        /// </summary>
+        public int IntentCountdown { get; internal set; }
+
         /// <summary>Active statuses in the order they were first applied. Every entry has at least 1 stack.</summary>
         public IReadOnlyList<StatusEffect> Statuses => statuses;
 

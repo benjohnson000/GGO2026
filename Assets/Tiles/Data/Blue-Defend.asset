@@ -24,3 +24,12 @@ MonoBehaviour:
   icon: {fileID: 1336664447, guid: 772c731695356654bb3255554ec94552, type: 3}
   iconColorSource: 2
   iconColor: {r: 1, g: 1, b: 1, a: 1}
+  effects:
+  - rid: 7267738266728399134
+  references:
+    version: 2
+    RefIds:
+    - rid: 7267738266728399134
+      type: {class: GainBlockEffect, ns: ggo2026, asm: ggo2026}
+      data:
+        amount: 3

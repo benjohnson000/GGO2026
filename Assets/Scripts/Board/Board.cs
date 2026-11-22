@@ -17,6 +17,19 @@ namespace ggo2026
         private const int MaxShuffleRounds = 5;
         private const int MaxCascades = 100;
 
+        /// <summary>A destroyed tile whose effects still have to fire.</summary>
+        private struct PendingEffect
+        {
+            public Tile Tile;
+            public Vector2Int Cell;
+
+            /// <summary>The effect that destroyed it, or null if it was matched or fired by a swap.</summary>
+            public TileEffectActivatedEvent Cause;
+
+            /// <summary>The other swapped tile, when the swap itself fired this one.</summary>
+            public Tile SwappedWith;
+        }
+
         private readonly Tile[,] cells;
         private readonly TilePool pool;
         private readonly System.Random rng;
@@ -25,7 +38,7 @@ namespace ggo2026
 
         private readonly List<MatchGroup> matches = new List<MatchGroup>();
         private readonly List<ComboCreatedEvent> comboSpawns = new List<ComboCreatedEvent>();
-        private readonly List<ComboActivatedEvent> comboEffects = new List<ComboActivatedEvent>();
+        private readonly List<PendingEffect> pendingEffects = new List<PendingEffect>();
         private readonly List<Tile> rejected = new List<Tile>();
         private readonly List<Tile> shuffleTiles = new List<Tile>();
         private readonly List<Vector2Int> shuffleCells = new List<Vector2Int>();
@@ -36,6 +49,13 @@ namespace ggo2026
 
         /// <summary>Accepted swaps so far. Turns are measured in swaps, so cascades and rejected swaps don't count.</summary>
         public int SwapCount { get; private set; }
+
+        /// <summary>
+        /// The fight tile effects act on, or null for none (effects that only touch combat then do nothing).
+        /// Actions an effect queues are resolved right after it fires and attached to its
+        /// <see cref="TileEffectActivatedEvent.CombatEvents"/>, so they stay in order with the board events.
+        /// </summary>
+        public Combat Combat { get; set; }
 
         /// <param name="combos">Which combo tiles special matches make. Null means matches never make combos.</param>
         public Board(int width, int height, TilePool pool, System.Random rng, ComboTable combos = null)
@@ -87,7 +107,8 @@ namespace ggo2026
         }
 
         /// <summary>
-        /// Swaps two adjacent tiles. If the swap makes no match it is undone and does not count as a turn.
+        /// Swaps two adjacent tiles. If the swap makes no match (and neither tile fires on swap, like a colour bomb)
+        /// it is undone and does not count as a turn.
         /// Otherwise the board resolves every match and cascade, then reshuffles if no valid move is left.
         /// Returns no events for an illegal request (not adjacent, out of bounds or empty).
         /// </summary>
@@ -101,7 +122,8 @@ namespace ggo2026
             if (Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y) != 1) return events;
 
             SwapCells(a, b);
-            bool accepted = MatchFinder.HasMatchThrough(cells, a) || MatchFinder.HasMatchThrough(cells, b);
+            bool accepted = ActivatesOnSwap(tileA) || ActivatesOnSwap(tileB)
+                || MatchFinder.HasMatchThrough(cells, a) || MatchFinder.HasMatchThrough(cells, b);
             if (!accepted) SwapCells(a, b);
 
             events.Add(new SwapEvent(tileA, tileB, a, b, accepted));
@@ -113,7 +135,7 @@ namespace ggo2026
             return events;
         }
 
-        /// <summary>True if some swap of two adjacent tiles would make a match.</summary>
+        /// <summary>True if some swap of two adjacent tiles would make a match or fire a swap-activated tile.</summary>
         public bool HasValidMove()
         {
             for (int x = 0; x < Width; x++)
@@ -137,34 +159,51 @@ namespace ggo2026
         {
             for (int cascade = 0; cascade < MaxCascades; cascade++)
             {
-                matchFinder.FindMatches(cells, matches);
-                if (matches.Count == 0) return;
-
-                foreach (MatchGroup group in matches) events.Add(new MatchEvent(group, cascade));
-
-                // Combos are chosen before anything is destroyed, but placed after, into cells the match emptied.
                 comboSpawns.Clear();
-                if (combos != null)
+                pendingEffects.Clear();
+
+                // A swap that fires a tile (colour bomb) resolves only that this step; matches wait for the next cascade.
+                bool firedBySwap = cascade == 0 && FireSwapActivations(events, swapA, swapB);
+                if (!firedBySwap)
                 {
+                    matchFinder.FindMatches(cells, matches);
+                    if (matches.Count == 0) return;
+
+                    foreach (MatchGroup group in matches) events.Add(new MatchEvent(group, cascade));
+
+                    // Combos are chosen before anything is destroyed, but placed after, into cells the match emptied.
+                    if (combos != null)
+                    {
+                        foreach (MatchGroup group in matches)
+                        {
+                            if (!combos.TryCreate(group.Shape, group.Colour, out Tile combo)) continue;
+                            Vector2Int cell = cascade == 0 ? PickComboCell(group, swapA, swapB) : group.ComboCell;
+                            comboSpawns.Add(new ComboCreatedEvent(combo, cell, group));
+                        }
+                    }
+
                     foreach (MatchGroup group in matches)
                     {
-                        if (!combos.TryCreate(group.Shape, group.Colour, out Tile combo)) continue;
-                        Vector2Int cell = cascade == 0 ? PickComboCell(group, swapA, swapB) : group.ComboCell;
-                        comboSpawns.Add(new ComboCreatedEvent(combo, cell, group));
+                        foreach (Vector2Int cell in group.Cells) DestroyAt(cell, events, null);
                     }
                 }
 
-                comboEffects.Clear();
-                foreach (MatchGroup group in matches)
-                {
-                    foreach (Vector2Int cell in group.Cells) DestroyAt(cell, events);
-                }
+                // Only the swap's own matches know the swap direction; cascades and chained effects do not.
+                Vector2Int? swapDirection = cascade == 0 && swapA.HasValue && swapB.HasValue ? swapB.Value - swapA.Value : (Vector2Int?)null;
 
-                // Effects can destroy more combos, which queue their own effects, so this list may grow while looping.
-                for (int i = 0; i < comboEffects.Count; i++)
+                // Effects can destroy more tiles with effects, which queue their own, so this list may grow while looping.
+                for (int i = 0; i < pendingEffects.Count; i++)
                 {
-                    events.Add(comboEffects[i]);
-                    ApplyComboEffect(comboEffects[i], events);
+                    PendingEffect pending = pendingEffects[i];
+                    TileEffectContext context = new TileEffectContext(this, pending.Tile, pending.Cell,
+                        pending.Cause == null ? swapDirection : null, pending.Cause, pending.SwappedWith, Combat, rng);
+
+                    // A tile's effects fire in list order, each seeing the board as the previous one left it.
+                    IReadOnlyList<TileEffect> effects = pending.Tile.Effects;
+                    for (int e = 0; e < effects.Count; e++)
+                    {
+                        if (effects[e] != null) FireEffect(effects[e], context, events);
+                    }
                 }
 
                 foreach (ComboCreatedEvent spawn in comboSpawns)
@@ -180,6 +219,31 @@ namespace ggo2026
             Debug.LogWarning($"Board: stopped resolving after {MaxCascades} cascades.");
         }
 
+        /// <summary>
+        /// Runs one effect, resolves the combat actions it queued, logs its event and destroys its targets
+        /// (whose own effects queue with this event as the cause).
+        /// </summary>
+        private void FireEffect(TileEffect effect, TileEffectContext context, List<BoardEvent> events)
+        {
+            TileEffectActivatedEvent activated = effect.Activate(context);
+
+            List<CombatEvent> combatEvents = Combat != null ? Combat.Resolve() : null;
+            bool hasCombatEvents = combatEvents != null && combatEvents.Count > 0;
+            if (activated == null)
+            {
+                // An effect that queued combat actions but returned no event still gets one, so its results are shown.
+                if (!hasCombatEvents) return;
+                activated = new TileEffectActivatedEvent(effect, context.Tile, context.Cell);
+            }
+            if (hasCombatEvents) activated.CombatEvents = combatEvents;
+
+            events.Add(activated);
+            foreach (Vector2Int target in activated.Targets)
+            {
+                if (IsInBounds(target)) DestroyAt(target, events, activated);
+            }
+        }
+
         /// <summary>The dragged tile's cell if it is in the group, else the other swapped cell, else the group's default.</summary>
         private static Vector2Int PickComboCell(MatchGroup group, Vector2Int? swapA, Vector2Int? swapB)
         {
@@ -188,8 +252,37 @@ namespace ggo2026
             return group.ComboCell;
         }
 
-        /// <summary>Removes the tile at a cell, if any, returns it to the pool and queues its combo effect.</summary>
-        private void DestroyAt(Vector2Int cell, List<BoardEvent> events)
+        /// <summary>
+        /// Destroys swapped tiles that fire on swap and queues their effects with the other tile as the partner.
+        /// Both tiles are read first, so two swapped colour bombs each see the other. Returns true if any fired.
+        /// </summary>
+        private bool FireSwapActivations(List<BoardEvent> events, Vector2Int? swapA, Vector2Int? swapB)
+        {
+            if (!swapA.HasValue || !swapB.HasValue) return false;
+
+            Vector2Int a = swapA.Value;
+            Vector2Int b = swapB.Value;
+            Tile tileA = cells[a.x, a.y];
+            Tile tileB = cells[b.x, b.y];
+            bool firesA = ActivatesOnSwap(tileA);
+            bool firesB = ActivatesOnSwap(tileB);
+
+            if (firesA) DestroyAt(a, events, null, tileB);
+            if (firesB) DestroyAt(b, events, null, tileA);
+            return firesA || firesB;
+        }
+
+        private static bool ActivatesOnSwap(Tile tile)
+        {
+            return tile != null && tile.ActivatesOnSwap;
+        }
+
+        /// <summary>
+        /// Removes the tile at a cell, if any, returns it to the pool and queues its effect.
+        /// <paramref name="cause"/> is the effect that destroyed it, or null for a match or swap;
+        /// <paramref name="swappedWith"/> is the partner tile when the swap itself fired it.
+        /// </summary>
+        private void DestroyAt(Vector2Int cell, List<BoardEvent> events, TileEffectActivatedEvent cause, Tile swappedWith = null)
         {
             Tile tile = cells[cell.x, cell.y];
             if (tile == null) return;
@@ -199,17 +292,7 @@ namespace ggo2026
             // Returned before refilling, so a destroyed tile can be redrawn straight away. Combos are discarded.
             pool.Return(tile);
 
-            if (tile.ComboEffect != ComboEffect.None) comboEffects.Add(new ComboActivatedEvent(tile, cell));
-        }
-
-        private void ApplyComboEffect(ComboActivatedEvent activated, List<BoardEvent> events)
-        {
-            switch (activated.Tile.ComboEffect)
-            {
-                case ComboEffect.ClearRow:
-                    for (int x = 0; x < Width; x++) DestroyAt(new Vector2Int(x, activated.Cell.y), events);
-                    break;
-            }
+            if (tile.HasEffects) pendingEffects.Add(new PendingEffect { Tile = tile, Cell = cell, Cause = cause, SwappedWith = swappedWith });
         }
 
         private void ApplyGravity(List<BoardEvent> events)
@@ -360,6 +443,7 @@ namespace ggo2026
         private bool SwapMakesMatch(Vector2Int a, Vector2Int b)
         {
             if (cells[a.x, a.y] == null || cells[b.x, b.y] == null) return false;
+            if (ActivatesOnSwap(cells[a.x, a.y]) || ActivatesOnSwap(cells[b.x, b.y])) return true;
 
             SwapCells(a, b);
             bool result = MatchFinder.HasMatchThrough(cells, a) || MatchFinder.HasMatchThrough(cells, b);

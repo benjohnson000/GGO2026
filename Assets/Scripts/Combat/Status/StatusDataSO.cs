@@ -13,11 +13,15 @@ namespace ggo2026
         [SerializeField] private string displayName;
         [SerializeField] private Sprite icon;
 
+        [Tooltip("Tints the icon (leave white for full-colour art). Without an icon, colours a placeholder square showing the status's first letter.")]
+        [SerializeField] private Color colour = Color.white;
+
         [TextArea]
         [SerializeField] private string description;
 
         public string DisplayName => string.IsNullOrEmpty(displayName) ? name : displayName;
         public Sprite Icon => icon;
+        public Color Colour => colour;
         public string Description => description;
 
         /// <summary>Creates the runtime effect. <see cref="Combat"/> sets its data, owner and stacks afterwards.</summary>
