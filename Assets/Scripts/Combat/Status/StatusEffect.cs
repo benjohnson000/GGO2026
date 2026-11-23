@@ -9,5 +9,12 @@ namespace ggo2026
     {
         public StatusDataSO Data { get; internal set; }
         public int Stacks { get; internal set; }
+
+        /// <summary>
+        /// The hit this status would deal at the start of its owner's next turn, or null. The health bar previews it,
+        /// so a status that deals such damage should build its real hit with this too (see <see cref="PoisonStatus"/>).
+        /// Must return a new <see cref="DamageInfo"/> each call and change nothing.
+        /// </summary>
+        public virtual DamageInfo CreateTurnStartDamage() => null;
     }
 }

@@ -59,6 +59,11 @@ namespace ggo2026
         [Min(0f)]
         [SerializeField] private float lineBlastFadeTime = 0.15f;
 
+        [Header("Laser")]
+        [Tooltip("Optional. Projectile flown from a laser tile to each target when the laser effect has no Projectile of its own; " +
+                 "the target starts to pop when it lands. Without either, targets pop as soon as the laser fires.")]
+        [SerializeField] private ProjectileStyleSO defaultLaserProjectile;
+
         [Header("Audio")]
         [Tooltip("Optional. Played once per tile as it starts to pop. Use its Min Interval to thin out very fast clears.")]
         [SerializeField] private SoundProfileSO popSound;
@@ -97,5 +102,6 @@ namespace ggo2026
         public float LineBlastSpeed => lineBlastSpeed;
         public float LineBlastFadeTime => lineBlastFadeTime;
         public SoundProfileSO LineBlastSound => lineBlastSound;
+        public ProjectileStyleSO DefaultLaserProjectile => defaultLaserProjectile;
     }
 }

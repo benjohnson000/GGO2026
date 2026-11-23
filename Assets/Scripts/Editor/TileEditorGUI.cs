@@ -143,7 +143,8 @@ namespace ggo2026
         /// Draws the tile as the board will: outlined shape (colour 1), pattern masked to the shape (colour 3), icon (colour 2).
         /// The layers are composited per texel on the CPU, so masking and outline match the shader exactly.
         /// </summary>
-        public static void Preview(Sprite shape, Sprite pattern, Sprite icon, Color shapeTint, Color patternTint, Color iconTint, float size)
+        /// <param name="outline">False draws the shape without the palette outline (custom sprites with a drawn-in outline).</param>
+        public static void Preview(Sprite shape, Sprite pattern, Sprite icon, Color shapeTint, Color patternTint, Color iconTint, float size, bool outline = true)
         {
             GUILayout.BeginHorizontal();
             GUILayout.FlexibleSpace();
@@ -155,7 +156,7 @@ namespace ggo2026
 
             EditorGUI.DrawRect(rect, PreviewBackground);
 
-            PreviewInputs inputs = new PreviewInputs(shape, pattern, icon, shapeTint, patternTint, iconTint, OutlineColor, OutlineThickness);
+            PreviewInputs inputs = new PreviewInputs(shape, pattern, icon, shapeTint, patternTint, iconTint, OutlineColor, outline ? OutlineThickness : 0);
             if (previewTexture == null || !inputs.Equals(previewInputs))
             {
                 previewInputs = inputs;

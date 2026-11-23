@@ -9,7 +9,7 @@
 | `BoardIdleState` | Accepting input. Empty state; `BoardView` checks for it. |
 | `BoardAnimatingState` | Runs `BoardView.PlayEvents` as a coroutine, then returns to Idle. |
 | `TileView` | One tile's sprite(s). Built entirely in code — no prefab. |
-| `LineBlast` | Prefab component: one arm of a striped tile's blast. See [Line blast](#line-blast). |
+| `LineBlast` | Prefab component: one arm of a striped tile's blast. See [Line blast](#line-blast). Lasers and colour bombs use a `DamageProjectile` instead; see [Laser and colour bomb projectiles](#laser-and-colour-bomb-projectiles). |
 | `BoardViewSettingsSO` | Layout, visuals, timing and drag tuning. |
 | `PaletteSO` / `ColourSwatch` | Display colours per `TileColour`, plus outline colour/thickness. |
 
@@ -61,14 +61,15 @@ Drags off the edge of the board are ignored.
 | Events | Animation | Timing |
 |---|---|---|
 | `SwapEvent` | Both tiles slide past each other; rejected swaps slide back | `SwapDuration` each way, smoothstep |
-| `MatchEvent` + `TileDestroyedEvent` + `TileEffectActivatedEvent` run | Destroyed tiles pop one at a time in event order: each (including those a tile effect hits) starts shrinking `PopInterval` after the previous one (except in a [line blast](#line-blast), which sets its own times), and as soon as a tile has fully disappeared its effects' `CombatEvents` go to `EncounterView.Play(events, origin, colour)`, with the tile's world position as the origin for projectiles and its shape colour as their tint. Each tile plays `PopSound` as it starts, pitched up `PopPitchStep` per tile (capped at `PopPitchMax`). The count carries across every cascade of one playback (a swap and everything it sets off) and resets when the next playback starts. Shrinks overlap; the run ends when the last tile is gone, then all popped views are destroyed | `PopInterval` between tiles or `LineBlastSpeed` along a blast, `PopDuration` per tile, ease-in |
+| `MatchEvent` + `TileDestroyedEvent` + `TileEffectActivatedEvent` run | Destroyed tiles pop one at a time in event order: each (including those a tile effect hits) starts shrinking `PopInterval` after the previous one (except in a [line blast](#line-blast), which sets its own times), and as soon as a tile has fully disappeared its effects' `CombatEvents` go to `EncounterView.Play(events, origin, colour, style)`, with the tile's world position as the origin for projectiles, its shape colour as their tint, and the effect's `Projectile` style (null = the encounter's default). Each tile plays `PopSound` as it starts, pitched up `PopPitchStep` per tile (capped at `PopPitchMax`). The count carries across every cascade of one playback (a swap and everything it sets off) and resets when the next playback starts. Shrinks overlap; the run ends when the last tile is gone, then all popped views are destroyed | `PopInterval` between tiles or `LineBlastSpeed` along a blast, `PopDuration` per tile, ease-in |
 | `ComboCreatedEvent` run | New combo tiles are created at their cell and grow in from zero | `PopDuration`, smoothstep |
 | `TileMovedEvent` + `TileSpawnedEvent` run | Falling and new tiles drop together; spawns are created at `SpawnCell` | `distance / FallSpeed`, ease-in |
 | `BoardShuffledEvent` | Moved tiles slide to their new cells | `ShuffleDuration`, smoothstep |
 
 So each cascade step reads as "pop, (combos appear,) then drop". After the last event, playback waits
 until `EncounterView.IsPlaying` is false (every projectile has landed), then plays the enemy-turn
-events and returns to Idle. `BoardView` keeps a `Dictionary<Tile, TileView>` to find
+events, calls `EncounterView.Settle()` (the whole chain is over, so the health bars' underfills can
+drain) and returns to Idle without waiting for the drain. `BoardView` keeps a `Dictionary<Tile, TileView>` to find
 the view for each event; views are added on spawn and removed once their pop has fully shrunk.
 
 The board logs a batch's effects **after** all of that batch's destroys (a colour bomb is "destroy ×n, then
@@ -107,6 +108,24 @@ Prefab setup:
 5. `tintWithTileColour` (default on) multiplies sprites, trails and single-colour particles (through
    `RendererTint`), so use white or grey art.
 
+### Laser and colour bomb projectiles
+
+Lasers, and colour bombs with a projectile style, send one projectile to each tile they hit, and that
+tile pops as its projectile lands. They wait to launch like a line blast does.
+
+- The style ([ProjectileStyleSO](Combat.md#projectile-styles)) is the effect's own `Projectile`. A laser
+  without one uses `defaultLaserProjectile` from these settings. A colour bomb without one (or whose style
+  has no prefab) sends none and its tiles pop at `PopInterval` as before.
+- The *n*th hit's projectile launches `n × PopInterval` after the blast starts, keeping the pop rhythm,
+  and its tile starts to pop the style's `FlightTime` later (its `duration`, or 0 with no prefab). The flight
+  time is the same for every hit, so pop times never decrease. The run ends no earlier than the last landing.
+- `LaunchProjectile` spawns the prefab at the firing tile, parented to the board, and launches it with
+  `DamageProjectile.Launch(style, start, end, colour)` at the target cell's world centre (the point
+  overload, with no callback), tinted with the firing tile's shape colour. The style's launch and impact
+  sounds play per projectile. A projectile can't start partway through its flight, so it may land up to a
+  frame after its target starts to pop.
+- `PendingBlast` holds one entry per projectile (`HasTarget`, `Target`) and one per line blast.
+
 Move animations share reusable lists (`moveTargets`, …) because only one animation runs at a time.
 Any new animation must go through `AddMove` / `RunMoves` or keep that assumption.
 
@@ -123,7 +142,7 @@ Any new animation must go through `AddMove` / `RunMoves` or keep that assumption
   sorting order +2, no outline.
 - Each layer's colour source is chosen per tile: Primary, Secondary, Tertiary, Highlight or Override.
 - Custom sprite: if `TileDataSO.HasCustomSprite`, the root renderer draws `CustomSprite` in white with the
-  outline, and no pattern or icon layers are created.
+  outline (thickness 0 when `CustomSpriteOutline` is off), and no pattern or icon layers are created.
 - All layers share the tile material. Outline and mask values are set per renderer with a
   `MaterialPropertyBlock`.
 - Scale: `CellSize × TileScale`, leaving a gap between tiles.
@@ -176,6 +195,7 @@ start. Missing fallback sprite → error per tile that needs it.
 | Line Blast | `lineBlastPrefab` | – | One `LineBlast` arm. No visual when unassigned |
 | | `lineBlastSpeed` | 20 cells/s | Head speed, and so the pop rhythm along a line |
 | | `lineBlastFadeTime` | 0.15 s | Fade after the head reaches the edge |
+| Laser | `defaultLaserProjectile` | – | `ProjectileStyleSO` for laser effects with no `Projectile` of their own. Its `duration` sets when targets pop. With no style there is no visual and targets pop as soon as the laser fires |
 | Input | `dragThreshold` | 0.35 | Fraction of a cell to drag before swapping |
 
 ## PaletteSO

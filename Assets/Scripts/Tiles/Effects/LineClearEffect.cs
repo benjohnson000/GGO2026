@@ -15,6 +15,9 @@ namespace ggo2026
         [Tooltip("On: a sideways swap clears the column and an up/down swap clears the row, as in Candy Crush. Off: clears along the swap.")]
         [SerializeField] private bool clearAcrossSwap = true;
 
+        // Draws its own blast (LineBlast) and queues no combat actions.
+        public override bool UsesProjectile => false;
+
         public override TileEffectActivatedEvent Activate(TileEffectContext context)
         {
             Board board = context.Board;

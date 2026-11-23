@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6cd3d0b024115c841b264ceb98b11c61, type: 3}
+  m_Name: DamageBlocked
+  m_EditorClassIdentifier: ggo2026::benjohnson.SoundProfileSO
+  clips:
+  - {fileID: 8300000, guid: 9d291f332f34e44439581f792974af1c, type: 3}
+  - {fileID: 8300000, guid: 92a65c6903b327d4a8be5c2ca7130333, type: 3}
+  - {fileID: 8300000, guid: b6d62bc2c1a4a1641a9b9c91b5805560, type: 3}
+  - {fileID: 8300000, guid: 63211340431fddd49a3a77773bfde8d6, type: 3}
+  - {fileID: 8300000, guid: bcfc90161dfd14d4aa82b9d28ce56d5f, type: 3}
+  volume: 0.75
+  minPitch: 1
+  maxPitch: 1
+  minInterval: 0

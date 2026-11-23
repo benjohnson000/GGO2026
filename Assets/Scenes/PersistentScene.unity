@@ -174,7 +174,7 @@ MonoBehaviour:
   startupUtilityScenes:
   - Camera
   - GameUtilities
-  startupEnvironmentScene: Game
+  startupEnvironmentScene: MainMenu
 --- !u!114 &1855207231
 MonoBehaviour:
   m_ObjectHideFlags: 0

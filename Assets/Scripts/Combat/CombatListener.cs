@@ -6,6 +6,8 @@ namespace ggo2026
     /// <para>
     /// <b>Modifiers</b> (<c>Modify*</c>) run only for listeners owned by the side they name: outgoing damage for the
     /// attacker's, incoming damage and block for the target's. They may only change the value passed in.
+    /// <see cref="Combat.PreviewDamage"/> also runs them, for hits that haven't happened, so never use one to count
+    /// or use something up: do that in a trigger.
     /// </para>
     /// <para>
     /// <b>Triggers</b> (<c>On*</c>) run for every listener, those owned by the event's target first. Check
@@ -40,6 +42,9 @@ namespace ggo2026
 
         /// <summary>A turn started, after that combatant's block was removed.</summary>
         public virtual void OnTurnStarted(Combat combat, Combatant combatant) { }
+
+        /// <summary>An accepted swap has fully resolved. Runs before the enemy countdown ticks, so before any turn it causes.</summary>
+        public virtual void OnSwapEnded(Combat combat) { }
 
         /// <summary>An intent countdown changed: ticked down by a swap, delayed (e.g. by stun) or set for a new intent.</summary>
         public virtual void OnCountdownChanged(Combat combat, CountdownChangedEvent countdownEvent) { }

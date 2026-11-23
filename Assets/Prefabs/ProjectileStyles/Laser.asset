@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cdbccac38b12c634097d6a24f5294334, type: 3}
+  m_Name: Laser
+  m_EditorClassIdentifier: ggo2026::ggo2026.ProjectileStyleSO
+  prefab: {fileID: 8518397303934392627, guid: 022fa2849cc0d714cafc55238a3613fe, type: 3}
+  duration: 0.1
+  arcHeight: 0
+  arcSpread: 0
+  easePower: 1
+  faceDirection: 0
+  impactPrefab: {fileID: 0}
+  tintWithTileColour: 1
+  launchSound: {fileID: 0}
+  impactSound: {fileID: 0}

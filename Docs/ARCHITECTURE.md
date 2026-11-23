@@ -92,12 +92,15 @@ Built:
 - Grid rules: drag-to-swap, invalid-swap bounce, matches incl. 2x2 squares and L/T merging, gravity, refill, cascades,
   no-match initial fill, reshuffle when no moves remain.
 - Combo tiles: match-shape priority, temporary combo tiles (4-line → Striped) from `BoardConfigSO` combo rules.
-- Tile effects: an ordered `[SerializeReference] List<TileEffect>` on `TileDataSO` (any number per tile, edited with Animancer's polymorphic drawer), fired by the board when a tile is destroyed. Board effects `LineClearEffect` (striped) and `ColourBombEffect` (fires on swap); combat effects `DealDamageEffect`, `GainBlockEffect`, `HealEffect`, `ApplyStatusEffect`, which queue `CombatAction`s on the board's `Combat`.
+- Tile effects: an ordered `[SerializeReference] List<TileEffect>` on `TileDataSO` (any number per tile, edited with Animancer's polymorphic drawer), fired by the board when a tile is destroyed. Board effects `LineClearEffect` (striped), `ColourBombEffect` (fires on swap), `LaserEffect` (shoots random tiles) and `ExplosionEffect` (clears a square around it); combat effects `DealDamageEffect`, `GainBlockEffect`, `HealEffect`, `ApplyStatusEffect`, which queue `CombatAction`s on the board's `Combat`.
 - Deck-as-pool with filler tiles when the pool is empty.
 - Placeholder visuals: outlined shape, pattern masked to the shape, and icon, each tinted from the palette by one shader.
 - Tile authoring tools in the editor.
 - Combat rules: health, block, damage pipeline, action queue, listener hooks, statuses (Poison), with
-  placeholder views, block and status icons, and debug actions. See [Combat](Systems/Combat.md).
+  placeholder views, status icons, and debug actions. See [Combat](Systems/Combat.md).
+- Layered health bar: block icon and number, delayed damage underfill and a coloured band for each status's
+  next turn-start damage.
+  See [Health bar](Systems/Combat.md#health-bar).
 - Encounter flow: random weighted enemy intents with per-intent countdowns ticked by each accepted swap,
   enemy and player turns, placeholder victory/defeat and restart. See [Encounter](Systems/Encounter.md).
 - Infrastructure: scene loading, transitions, input, audio managers, save/load.

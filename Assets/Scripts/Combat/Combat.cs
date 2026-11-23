@@ -21,6 +21,8 @@ namespace ggo2026
         private readonly Queue<CombatAction> queue = new Queue<CombatAction>();
         private readonly List<CombatListener> listeners = new List<CombatListener>();
         private readonly List<CombatListener> buffer = new List<CombatListener>();
+        // Separate, because previews are taken in the middle of resolving.
+        private readonly List<CombatListener> previewBuffer = new List<CombatListener>();
         private List<CombatEvent> events;
 
         public Combatant Player { get; }
@@ -117,20 +119,46 @@ namespace ggo2026
             return resolved;
         }
 
+        /// <summary>
+        /// The health <paramref name="combatant"/> would lose to its statuses if its turn started now: they hit in
+        /// trigger order, through the same modifiers, into whatever block it would keep. Changes nothing.
+        /// It can't foresee what triggers would do in response to those hits or to the turn starting.
+        /// </summary>
+        public DamagePreview PreviewDamage(Combatant combatant)
+        {
+            if (!IsInFight(combatant) || combatant.IsDead) return DamagePreview.None;
+
+            List<PreviewedDamage> hits = null;
+            int health = combatant.Health;
+            int block = -1; // Worked out only if something is going to hit.
+
+            foreach (StatusEffect status in combatant.Statuses)
+            {
+                if (health <= 0) break;
+
+                DamageInfo damage = status.CreateTurnStartDamage();
+                if (damage == null) continue;
+
+                if (block < 0) block = combatant.Block - GetBlockLost(combatant, previewBuffer);
+                ModifyDamage(damage, previewBuffer);
+                SplitDamage(damage, block, health, out int blocked, out int healthLost);
+                block -= blocked;
+                health -= healthLost;
+                if (healthLost <= 0) continue;
+
+                if (hits == null) hits = new List<PreviewedDamage>();
+                hits.Add(new PreviewedDamage(status.Data, healthLost));
+            }
+            return hits != null ? new DamagePreview(hits) : DamagePreview.None;
+        }
+
         internal void ResolveDamage(DamageInfo damage)
         {
             Combatant target = damage.Target;
             if (!IsInFight(target) || target.IsDead) return;
 
-            if (damage.Source != null)
-            {
-                foreach (CombatListener listener in GetListenersOwnedBy(damage.Source)) listener.ModifyOutgoingDamage(this, damage);
-            }
-            foreach (CombatListener listener in GetListenersOwnedBy(target)) listener.ModifyIncomingDamage(this, damage);
-
-            damage.Amount = Mathf.Max(0, damage.Amount);
-            int blocked = damage.IgnoresBlock ? 0 : Mathf.Min(target.Block, damage.Amount);
-            int healthLost = Mathf.Min(target.Health, damage.Amount - blocked);
+            ModifyDamage(damage, buffer);
+            SplitDamage(damage, target.Block, target.Health, out int blocked, out int healthLost);
             target.Block -= blocked;
             target.Health -= healthLost;
 
@@ -200,12 +228,18 @@ namespace ggo2026
 
             Log(new TurnStartedEvent(combatant));
 
-            int lost = combatant.Block;
-            foreach (CombatListener listener in GetListenersOwnedBy(combatant)) lost = listener.ModifyBlockLost(this, lost);
-            lost = Mathf.Clamp(lost, 0, combatant.Block);
+            int lost = GetBlockLost(combatant, buffer);
             if (lost > 0) ChangeBlock(combatant, combatant.Block - lost);
 
             foreach (CombatListener listener in GetListeners(combatant)) listener.OnTurnStarted(this, combatant);
+        }
+
+        internal void ResolveEndSwap()
+        {
+            if (IsOver) return;
+
+            // The player made the swap, so their listeners go first.
+            foreach (CombatListener listener in GetListeners(Player)) listener.OnSwapEnded(this);
         }
 
         internal void ResolveCountdown(Combatant target, int newCountdown)
@@ -220,6 +254,30 @@ namespace ggo2026
             CountdownChangedEvent countdownEvent = new CountdownChangedEvent(target, oldCountdown, newCountdown);
             Log(countdownEvent);
             foreach (CombatListener listener in GetListeners(target)) listener.OnCountdownChanged(this, countdownEvent);
+        }
+
+        private void ModifyDamage(DamageInfo damage, List<CombatListener> into)
+        {
+            if (damage.Source != null)
+            {
+                foreach (CombatListener listener in GetListenersOwnedBy(damage.Source, into)) listener.ModifyOutgoingDamage(this, damage);
+            }
+            foreach (CombatListener listener in GetListenersOwnedBy(damage.Target, into)) listener.ModifyIncomingDamage(this, damage);
+
+            damage.Amount = Mathf.Max(0, damage.Amount);
+        }
+
+        private static void SplitDamage(DamageInfo damage, int block, int health, out int blocked, out int healthLost)
+        {
+            blocked = damage.IgnoresBlock ? 0 : Mathf.Min(block, damage.Amount);
+            healthLost = Mathf.Min(health, damage.Amount - blocked);
+        }
+
+        private int GetBlockLost(Combatant combatant, List<CombatListener> into)
+        {
+            int lost = combatant.Block;
+            foreach (CombatListener listener in GetListenersOwnedBy(combatant, into)) lost = listener.ModifyBlockLost(this, lost);
+            return Mathf.Clamp(lost, 0, combatant.Block);
         }
 
         private void ChangeBlock(Combatant target, int newBlock)
@@ -248,7 +306,11 @@ namespace ggo2026
 
         private void Log(CombatEvent combatEvent)
         {
-            events?.Add(combatEvent);
+            if (events == null) return;
+
+            // Taken now: the rules finish long before the views get to show this event.
+            combatEvent.SetPreviews(PreviewDamage(combatEvent.Target), PreviewDamage(GetOpponent(combatEvent.Target)));
+            events.Add(combatEvent);
         }
 
         /// <summary>
@@ -258,25 +320,30 @@ namespace ggo2026
         private List<CombatListener> GetListeners(Combatant first)
         {
             buffer.Clear();
-            AddOwnedBy(first);
-            AddOwnedBy(GetOpponent(first));
+            AddOwnedBy(first, buffer);
+            AddOwnedBy(GetOpponent(first), buffer);
             return buffer;
         }
 
         /// <summary>Only the listeners owned by <paramref name="owner"/>, for modifiers that act on their own side.</summary>
         private List<CombatListener> GetListenersOwnedBy(Combatant owner)
         {
-            buffer.Clear();
-            AddOwnedBy(owner);
-            return buffer;
+            return GetListenersOwnedBy(owner, buffer);
         }
 
-        private void AddOwnedBy(Combatant owner)
+        private List<CombatListener> GetListenersOwnedBy(Combatant owner, List<CombatListener> into)
         {
-            foreach (StatusEffect status in owner.Statuses) buffer.Add(status);
+            into.Clear();
+            AddOwnedBy(owner, into);
+            return into;
+        }
+
+        private void AddOwnedBy(Combatant owner, List<CombatListener> into)
+        {
+            foreach (StatusEffect status in owner.Statuses) into.Add(status);
             foreach (CombatListener listener in listeners)
             {
-                if (listener.Owner == owner) buffer.Add(listener);
+                if (listener.Owner == owner) into.Add(listener);
             }
         }
     }

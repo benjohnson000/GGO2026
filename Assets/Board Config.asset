@@ -31,3 +31,13 @@ MonoBehaviour:
   - shape: 4
     tiles:
     - {fileID: 11400000, guid: 3b3e54a9f9a97024b90c0abb52b9a8fb, type: 2}
+  - shape: 1
+    tiles:
+    - {fileID: 11400000, guid: 5812ca4c8a942814499828eab5dccbfc, type: 2}
+    - {fileID: 11400000, guid: 44e3deb64d06c4f43822d750a9746aee, type: 2}
+    - {fileID: 11400000, guid: a058e3b3f3ebe5240a9bc8d369e25b20, type: 2}
+    - {fileID: 11400000, guid: ea4312ca928ec8f42ac98aac3ba0134a, type: 2}
+    - {fileID: 11400000, guid: b66e7709dcfea9644b63c517a4afeee0, type: 2}
+  - shape: 3
+    tiles:
+    - {fileID: 11400000, guid: c5228837cf29a04439341e961e624054, type: 2}

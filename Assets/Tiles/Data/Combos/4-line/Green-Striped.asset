@@ -22,7 +22,7 @@ MonoBehaviour:
   patternColorSource: 0
   patternColor: {r: 1, g: 1, b: 1, a: 1}
   icon: {fileID: 0}
-  iconColorSource: 4
+  iconColorSource: 2
   iconColor: {r: 1, g: 1, b: 1, a: 1}
   effects:
   - rid: 7267738266728398923

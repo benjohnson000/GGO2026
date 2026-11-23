@@ -19,9 +19,12 @@ namespace ggo2026
         [FormerlySerializedAs("colours")]
         [SerializeField] private TileColour colour = TileColour.Red;
 
-        [Tooltip("Optional hand-made sprite. When set, it is drawn untinted (with the outline) instead of the shape, pattern and icon. " +
+        [Tooltip("Optional hand-made sprite. When set, it is drawn untinted (with the outline, unless Custom Sprite Outline is off) instead of the shape, pattern and icon. " +
                  "Use 32x32 at 16 PPU, centred pivot, Mesh Type: Full Rect and a transparent margin for the outline.")]
         [SerializeField] private Sprite customSprite;
+
+        [Tooltip("Add the palette outline around the custom sprite. Turn off for sprites that already have an outline drawn in.")]
+        [SerializeField] private bool customSpriteOutline = true;
 
         [Tooltip("Base shape sprite (a slice of tile_shapes). Outlined by the board view.")]
         [SerializeField] private Sprite shape;
@@ -63,6 +66,9 @@ namespace ggo2026
         public IReadOnlyList<TileEffect> Effects => effects;
         public Sprite CustomSprite => customSprite;
         public bool HasCustomSprite => customSprite != null;
+
+        /// <summary>Whether the board adds the palette outline around <see cref="CustomSprite"/>.</summary>
+        public bool CustomSpriteOutline => customSpriteOutline;
         public Sprite Shape => shape;
         public Sprite Pattern => pattern;
         public Sprite Icon => icon;

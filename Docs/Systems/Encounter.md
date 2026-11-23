@@ -26,20 +26,22 @@ bool over = encounter.IsOver, won = encounter.PlayerWon;
 
 `AdvanceSwap()`:
 
-1. Does nothing if the fight is over or the enemy has no intent.
-2. Ticks the enemy's countdown by 1 (`ChangeCountdownAction(enemy, -1)`).
-3. If the countdown is now 0 (checked after resolving, since a listener may have changed it), the enemy
+1. Does nothing if the fight is over.
+2. Runs `EndSwapAction` (per-swap triggers such as per-swap poison). Stops here if someone died or the
+   enemy has no intent.
+3. Ticks the enemy's countdown by 1 (`ChangeCountdownAction(enemy, -1)`).
+4. If the countdown is now 0 (checked after resolving, since a listener may have changed it), the enemy
    takes its turn:
 
 ```
-StartTurn(Enemy)     // enemy block lost, enemy poison ticks
+StartTurn(Enemy)     // enemy block lost, enemy per-turn poison ticks
 intent actions       // queued in order, then resolved together
-StartTurn(Player)    // player block lost, player poison ticks
+StartTurn(Player)    // player block lost, player per-turn poison ticks
 pick next intent     // IntentChangedEvent, then SetCountdownAction(enemy, intent.Countdown)
 ```
 
 Each step stops if someone has died. Swaps that only tick the countdown are not turns, so block and
-poison are untouched by them (DESIGN.md › Turns).
+per-turn poison are untouched by them (DESIGN.md › Turns).
 
 Passives (not built yet) will fire between the board resolving and `AdvanceSwap`, as DESIGN.md's turn
 order requires.
@@ -84,6 +86,7 @@ implement `CreateAction` and `Describe`. It appears in the inspector's type pick
   OnClick to it.
 - `BoardView` calls `encounter.AdvanceSwap()` right after an accepted `TrySwap` and plays those events
   when the swap's animations finish and every projectile has landed (`EncounterView.IsPlaying`).
+  It then calls `EncounterView.Settle()` so the [health bars'](Combat.md#health-bar) underfills catch up.
   It stops accepting input once the fight is over.
 - `CombatantView.intentText` (enemy only) shows "Attack 6 in 3".
 - **Debug** (⋮ menu on `EncounterView`, Play mode): *Advance Swap* ticks the countdown without a swap;

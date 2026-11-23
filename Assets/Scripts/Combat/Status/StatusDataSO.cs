@@ -13,8 +13,14 @@ namespace ggo2026
         [SerializeField] private string displayName;
         [SerializeField] private Sprite icon;
 
-        [Tooltip("Tints the icon (leave white for full-colour art). Without an icon, colours a placeholder square showing the status's first letter.")]
+        [Tooltip("Tints the icon (leave white for full-colour art). Without an icon, colours a placeholder square.")]
         [SerializeField] private Color colour = Color.white;
+
+        [Tooltip("Use Bar Colour on the health bar instead of Colour, e.g. when the icon is full-colour art and Colour is white.")]
+        [SerializeField] private bool overrideBarColour;
+
+        [ColorUsage(false)]
+        [SerializeField] private Color barColour = Color.white;
 
         [TextArea]
         [SerializeField] private string description;
@@ -23,6 +29,17 @@ namespace ggo2026
         public Sprite Icon => icon;
         public Color Colour => colour;
         public string Description => description;
+
+        /// <summary>This status's band on the health bar. Always opaque, because the bar's layers overlap.</summary>
+        public Color BarColour
+        {
+            get
+            {
+                Color band = overrideBarColour ? barColour : colour;
+                band.a = 1f;
+                return band;
+            }
+        }
 
         /// <summary>Creates the runtime effect. <see cref="Combat"/> sets its data, owner and stacks afterwards.</summary>
         public virtual StatusEffect CreateEffect() => new StatusEffect();

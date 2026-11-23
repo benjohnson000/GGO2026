@@ -12,7 +12,7 @@ from here.** Use these before writing new infrastructure.
 | [Input](#input) | `InputManager.cs` | Pointer press / move / release events |
 | [Audio](#audio) | `Sound/` | One-shot SFX and looping music |
 | [Save/load](#saveload) | `SaveLoad/SaveLoadSystem.cs` | JSON files in `persistentDataPath` |
-| [Misc](#misc) | `Utilities.cs`, `CanvasCameraAssigner.cs`, `MatchWorldCanvasToCamera.cs`, `DisableOnStart.cs`, `RendererTint.cs` | Small helpers |
+| [Misc](#misc) | `Utilities.cs`, `CanvasCameraAssigner.cs`, `MatchWorldCanvasToCamera.cs`, `DisableOnStart.cs`, `RendererTint.cs`, `PixelOutline.cs`, `GraphicFlash.cs` | Small helpers |
 
 ## Singleton<T>
 
@@ -192,3 +192,5 @@ SaveLoadSystem.Exists("run"); SaveLoadSystem.Delete("run");
 | `MatchWorldCanvasToCamera` | `[ExecuteAlways]` — sizes/centres a world-space canvas to fill the camera view |
 | `DisableOnStart` | Deactivates its GameObject in `Start` (handy for editor-only helpers) |
 | `RendererTint.Multiply(root, tint)` | Multiplies the RGB of sprites, trail gradients and single-colour particles under a freshly spawned object, keeping their alpha. Multiplies again if called again |
+| `PixelOutline` | Component for a UI Graphic: a rounded pixel outline (`colour`, `thickness` 0–3 px, `pixelsPerUnit` 16) made of offset copies behind it. Needs no material or sprite margin. Exact on white art; on coloured art the outline is darkened by the art |
+| `GraphicFlash` | Component for a UI Graphic: `Flash()` turns it `flashColour` (default white; alpha sets the strength) for `holdDuration` (default 0.08 s, always at least one frame), then fades back over `fadeDuration` (default 0, which snaps straight back, as most pixel art games do). A new flash restarts it; disabling clears it. Needs `flashShader` set to a UI shader with `_FlashColor` and `_FlashAmount`, such as `GGO2026/UI Flash` (`Assets/Art/Shaders/UIFlash.shader`, UI/Default plus the flash, masks still work). It gives the Graphic its own material instance, replacing any it had, and logs an error if the shader is missing |

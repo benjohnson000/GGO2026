@@ -19,6 +19,7 @@ namespace ggo2026
         private SerializedProperty displayName;
         private SerializedProperty colour;
         private SerializedProperty customSprite;
+        private SerializedProperty customSpriteOutline;
         private SerializedProperty shape;
         private SerializedProperty shapeColorSource;
         private SerializedProperty shapeColor;
@@ -35,6 +36,7 @@ namespace ggo2026
             displayName = serializedObject.FindProperty("displayName");
             colour = serializedObject.FindProperty("colour");
             customSprite = serializedObject.FindProperty("customSprite");
+            customSpriteOutline = serializedObject.FindProperty("customSpriteOutline");
             shape = serializedObject.FindProperty("shape");
             shapeColorSource = serializedObject.FindProperty("shapeColorSource");
             shapeColor = serializedObject.FindProperty("shapeColor");
@@ -68,7 +70,7 @@ namespace ggo2026
             bool hasCustom = custom != null;
 
             // A custom sprite is drawn alone and untinted, as on the board.
-            if (hasCustom) TileEditorGUI.Preview(custom, null, null, Color.white, Color.white, Color.white, PreviewSize);
+            if (hasCustom) TileEditorGUI.Preview(custom, null, null, Color.white, Color.white, Color.white, PreviewSize, customSpriteOutline.boolValue);
             else TileEditorGUI.Preview(shapeSprite, pattern.objectReferenceValue as Sprite, icon.objectReferenceValue as Sprite, shapeTint, patternTint, iconTint, PreviewSize);
 
             GUILayout.BeginHorizontal();
@@ -91,7 +93,8 @@ namespace ggo2026
             EditorGUILayout.PropertyField(customSprite);
             if (hasCustom)
             {
-                EditorGUILayout.HelpBox("Custom sprite: drawn untinted with the outline. Shape, pattern and icon are ignored but kept, so clearing it restores them.", MessageType.Info);
+                EditorGUILayout.PropertyField(customSpriteOutline, new GUIContent("Add Outline", "Draw the palette outline around the sprite. Turn off if the sprite already has an outline drawn in."));
+                EditorGUILayout.HelpBox("Custom sprite: drawn untinted" + (customSpriteOutline.boolValue ? " with the outline" : ", without the outline") + ". Shape, pattern and icon are ignored but kept, so clearing it restores them.", MessageType.Info);
             }
 
             using (new EditorGUI.DisabledScope(hasCustom))

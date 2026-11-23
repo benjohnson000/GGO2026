@@ -9,6 +9,8 @@ namespace ggo2026
     /// which never matches and is fired by swapping it with any neighbour.
     /// The colour is the swapped tile's; when not fired by a swap (e.g. hit by a line clear), the most common colour
     /// on the board. Swapped with another colour bomb, it destroys the whole board.
+    /// Targets are in a random order, which is the order they are destroyed, fire their effects and pop.
+    /// With a <see cref="TileEffect.Projectile"/>, the board view sends one projectile to each target, which pops as it lands.
     /// </summary>
     [Serializable]
     public class ColourBombEffect : TileEffect
@@ -30,6 +32,7 @@ namespace ggo2026
                         if (board.GetTile(cell) != null) targets.Add(cell);
                     }
                 }
+                Shuffle(targets, context.Random);
                 return new ColourBombActivatedEvent(this, context.Tile, context.Cell, targets, TileColour.None);
             }
 
@@ -50,7 +53,23 @@ namespace ggo2026
                 }
             }
 
+            Shuffle(targets, context.Random);
             return new ColourBombActivatedEvent(this, context.Tile, context.Cell, targets, colour);
+        }
+
+        /// <summary>
+        /// Puts the targets in a random order (Fisher–Yates, with the board's rng). The board destroys them, fires
+        /// their effects and the view pops them in this order.
+        /// </summary>
+        private static void Shuffle(List<Vector2Int> cells, System.Random random)
+        {
+            for (int i = cells.Count - 1; i > 0; i--)
+            {
+                int j = random.Next(i + 1);
+                Vector2Int swap = cells[i];
+                cells[i] = cells[j];
+                cells[j] = swap;
+            }
         }
 
         /// <summary>The matchable colour with the most tiles on the board; ties go to the earlier colour in <see cref="TileColourUtils.All"/>. None if there are none.</summary>

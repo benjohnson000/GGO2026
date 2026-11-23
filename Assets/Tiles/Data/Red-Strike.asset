@@ -22,7 +22,7 @@ MonoBehaviour:
   patternColorSource: 0
   patternColor: {r: 1, g: 1, b: 1, a: 1}
   icon: {fileID: 726092508977080722, guid: 772c731695356654bb3255554ec94552, type: 3}
-  iconColorSource: 4
+  iconColorSource: 2
   iconColor: {r: 1, g: 1, b: 1, a: 1}
   effects:
   - rid: 7267738266728399128
@@ -32,4 +32,5 @@ MonoBehaviour:
     - rid: 7267738266728399128
       type: {class: DealDamageEffect, ns: ggo2026, asm: ggo2026}
       data:
+        projectile: {fileID: 11400000, guid: ae11fec07efc3e34b9a4d329a8e97da7, type: 2}
         amount: 3

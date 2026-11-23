@@ -10,13 +10,30 @@ namespace ggo2026
             this.settings = settings;
         }
 
+        // Previewed for both tick types: per swap, it is the hit the next swap will deal.
+        public override DamageInfo CreateTurnStartDamage()
+        {
+            // Nobody deals poison damage, so it gets no outgoing modifiers.
+            return new DamageInfo(null, Owner, Stacks, DamageKind.Status) { IgnoresBlock = settings.IgnoresBlock };
+        }
+
         public override void OnTurnStarted(Combat combat, Combatant combatant)
         {
-            if (combatant != Owner || Stacks <= 0) return;
+            if (settings.TickType != StatusTickType.PerTurn || combatant != Owner) return;
+            Tick(combat);
+        }
 
-            // Nobody deals poison damage, so it gets no outgoing modifiers.
-            DamageInfo damage = new DamageInfo(null, Owner, Stacks, DamageKind.Status) { IgnoresBlock = settings.IgnoresBlock };
-            combat.Enqueue(new DealDamageAction(damage));
+        public override void OnSwapEnded(Combat combat)
+        {
+            if (settings.TickType != StatusTickType.PerSwap) return;
+            Tick(combat);
+        }
+
+        private void Tick(Combat combat)
+        {
+            if (Stacks <= 0) return;
+
+            combat.Enqueue(new DealDamageAction(CreateTurnStartDamage()));
             combat.Enqueue(new ApplyStatusAction(Owner, Data, -settings.StacksLostPerTick));
         }
     }

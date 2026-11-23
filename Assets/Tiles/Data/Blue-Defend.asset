@@ -32,4 +32,5 @@ MonoBehaviour:
     - rid: 7267738266728399134
       type: {class: GainBlockEffect, ns: ggo2026, asm: ggo2026}
       data:
+        projectile: {fileID: 11400000, guid: ae11fec07efc3e34b9a4d329a8e97da7, type: 2}
         amount: 3

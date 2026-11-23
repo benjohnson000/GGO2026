@@ -13,21 +13,15 @@ MonoBehaviour:
   m_Name: Test Deck
   m_EditorClassIdentifier: ggo2026::ggo2026.StartingDeckSO
   entries:
-  - tile: {fileID: 11400000, guid: 40c494ca600736746a770d5aea7977e3, type: 2}
+  - tile: {fileID: 11400000, guid: a3ff67bc06bb29440a238736cf2376b2, type: 2}
     count: 25
   - tile: {fileID: 11400000, guid: b5c64e186998a0240bcaa39f9b498a1b, type: 2}
     count: 25
   - tile: {fileID: 11400000, guid: 713def77d77629040b293e6edb7b4183, type: 2}
     count: 25
-  - tile: {fileID: 11400000, guid: 74ac4761e81c3e54ebc6e065213ed1c9, type: 2}
-    count: 10
+  - tile: {fileID: 11400000, guid: 65eef48ba86d7c743b5c0569052e636d, type: 2}
+    count: 25
   - tile: {fileID: 11400000, guid: a5e93feab0fe5f040b306db10f786661, type: 2}
     count: 25
-  - tile: {fileID: 11400000, guid: 65eef48ba86d7c743b5c0569052e636d, type: 2}
-    count: 30
-  - tile: {fileID: 11400000, guid: a3ff67bc06bb29440a238736cf2376b2, type: 2}
-    count: 20
-  - tile: {fileID: 11400000, guid: e134ff08dd88f4142b8190dc18191c5f, type: 2}
-    count: 10
-  - tile: {fileID: 11400000, guid: 95466a1cdf497e94db066234dccf44f4, type: 2}
-    count: 20
+  - tile: {fileID: 11400000, guid: c5228837cf29a04439341e961e624054, type: 2}
+    count: 25

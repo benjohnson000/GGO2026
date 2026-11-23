@@ -6,7 +6,7 @@ namespace ggo2026
     /// Placeholder visual for one <see cref="Tile"/>, built in code so no prefab is needed. Layers, back to front:
     /// outlined shape, pattern masked to the shape, icon. Each layer's tint comes from the tile's colour source for it
     /// (palette colour 1/2/3 or an override); by default shape = 2, pattern = 1, icon = 3.
-    /// A tile with a custom sprite is drawn as that one sprite, untinted and outlined.
+    /// A tile with a custom sprite is drawn as that one sprite, untinted and (unless turned off on the tile) outlined.
     /// </summary>
     [RequireComponent(typeof(SpriteRenderer))]
     public class TileView : MonoBehaviour
@@ -39,12 +39,13 @@ namespace ggo2026
             SpriteRenderer spriteRenderer = go.AddComponent<SpriteRenderer>();
             if (settings.TileMaterial != null) spriteRenderer.sharedMaterial = settings.TileMaterial;
 
-            // A custom sprite replaces every generated layer and keeps its own colours; only the outline is added.
+            // A custom sprite replaces every generated layer and keeps its own colours; only the outline is added (if enabled).
             if (tile.Data != null && tile.Data.HasCustomSprite)
             {
                 spriteRenderer.sprite = tile.Data.CustomSprite;
                 spriteRenderer.color = Color.white;
-                if (palette != null) SetProperties(spriteRenderer, palette.OutlineColor, palette.OutlineThickness, null);
+                if (!tile.Data.CustomSpriteOutline) SetProperties(spriteRenderer, Color.clear, 0f, null);
+                else if (palette != null) SetProperties(spriteRenderer, palette.OutlineColor, palette.OutlineThickness, null);
                 return AddView(go, tile);
             }
 

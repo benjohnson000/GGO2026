@@ -29,7 +29,9 @@ Selecting any tile asset shows:
 
    A **Custom Sprite** field sits above these. While it is set, the preview shows that sprite untinted
    with the outline, and the Shape/Pattern/Icon sections and **Randomize** are disabled (their values are
-   kept). The Tile Editor window accepts either a shape or a custom sprite.
+   kept). Untick **Add Outline** (`TileDataSO.CustomSpriteOutline`, on by default) for sprites that already
+   have an outline drawn in; the preview and the board then draw the sprite with no added outline.
+   The Tile Editor window accepts either a shape or a custom sprite.
 
    Each of the three has a **Color** dropdown (Primary / Secondary / Tertiary / Override / Highlight) with a colour
    swatch that is editable only for Override. The chosen colour tints the picker thumbnails and preview.

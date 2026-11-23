@@ -12,11 +12,16 @@ namespace ggo2026
     /// </summary>
     public class BoardView : StateMachine<EBoardState>
     {
-        /// <summary>A line clear whose blast has yet to launch in the current pop run.</summary>
+        /// <summary>
+        /// A visual yet to launch in the current pop run: a line clear's blast, or one projectile from a laser or
+        /// colour bomb to <see cref="Target"/>.
+        /// </summary>
         private struct PendingBlast
         {
-            public LineClearActivatedEvent Line;
+            public TileEffectActivatedEvent Effect;
             public float StartTime;
+            public bool HasTarget;
+            public Vector2Int Target;
         }
 
         [SerializeField] private BoardConfigSO config;
@@ -189,6 +194,9 @@ namespace ggo2026
                 pendingTurnEvents = null;
                 if (encounter != null) encounter.Play(turnEvents);
             }
+
+            // Only here is the whole chain over: the encounter's queue also empties between cascades.
+            if (encounter != null) encounter.Settle();
         }
 
         private static bool IsPopEvent(BoardEvent boardEvent)
@@ -223,7 +231,7 @@ namespace ggo2026
         /// <summary>
         /// Pops a run's destroyed tiles one at a time, <see cref="BoardViewSettingsSO.PopInterval"/> apart, in the order
         /// the board resolved them. Each tile shrinks over <see cref="BoardViewSettingsSO.PopDuration"/> from its own
-        /// start, so pops overlap. Tiles hit by a line clear pop as its blast reaches them instead.
+        /// start, so pops overlap. Tiles hit by a line clear or laser pop as its blast reaches them instead.
         /// A tile's combat results play as soon as it has disappeared.
         /// </summary>
         private IEnumerator AnimatePop(List<BoardEvent> events, int start, int end)
@@ -284,14 +292,16 @@ namespace ggo2026
             float lastPopStart = 0f;
             float blastsEnd = 0f;
             float blastStart = 0f;
-            LineClearActivatedEvent blast = null;
+            TileEffectActivatedEvent blast = null;
+            ProjectileStyleSO blastStyle = null;
+            int blastHits = 0;
 
             for (int i = start; i < end; i++)
             {
                 if (events[i] is TileEffectActivatedEvent activated)
                 {
                     // The board logs an effect's destroys straight after it, up to the next effect.
-                    blast = activated as LineClearActivatedEvent;
+                    blast = IsBlast(activated) ? activated : null;
                     if (blast == null) continue;
 
                     blastStart = GetVanishTime(blast.Tile);
@@ -299,17 +309,33 @@ namespace ggo2026
                     bool hitsTiles = i + 1 < end && events[i + 1] is TileDestroyedEvent;
                     if (hitsTiles) blastStart = Mathf.Max(blastStart, lastPopStart);
 
-                    pendingBlasts.Add(new PendingBlast { Line = blast, StartTime = blastStart });
-                    GetArmLengths(blast, out float back, out float forward);
-                    blastsEnd = Mathf.Max(blastsEnd, blastStart + Mathf.Max(back, forward) / settings.LineBlastSpeed);
+                    blastStyle = GetProjectileStyle(blast);
+                    blastHits = 0;
+
+                    if (blast is LineClearActivatedEvent line)
+                    {
+                        pendingBlasts.Add(new PendingBlast { Effect = blast, StartTime = blastStart });
+                        GetArmLengths(line, out float back, out float forward);
+                        blastsEnd = Mathf.Max(blastsEnd, blastStart + Mathf.Max(back, forward) / settings.LineBlastSpeed);
+                    }
                 }
                 else if (events[i] is TileDestroyedEvent destroyed && views.TryGetValue(destroyed.Tile, out TileView view))
                 {
                     float popStart = nextBeat;
-                    if (blast != null)
+                    if (blast is LineClearActivatedEvent)
                     {
                         int distance = Mathf.Abs(destroyed.Cell.x - blast.Cell.x) + Mathf.Abs(destroyed.Cell.y - blast.Cell.y);
                         popStart = blastStart + distance / settings.LineBlastSpeed;
+                    }
+                    else if (blast != null)
+                    {
+                        // One projectile per hit, launched PopInterval apart so they keep the pop rhythm, each
+                        // target popping as its own projectile lands.
+                        float launch = blastStart + blastHits * settings.PopInterval;
+                        blastHits++;
+                        pendingBlasts.Add(new PendingBlast { Effect = blast, StartTime = launch, HasTarget = true, Target = destroyed.Cell });
+                        popStart = launch + (blastStyle != null ? blastStyle.FlightTime : 0f);
+                        blastsEnd = Mathf.Max(blastsEnd, popStart);
                     }
 
                     popping.Add(view);
@@ -332,6 +358,31 @@ namespace ggo2026
             return 0f;
         }
 
+        /// <summary>
+        /// True for effects whose hits pop as a travelling visual reaches them rather than at <see cref="BoardViewSettingsSO.PopInterval"/>:
+        /// line clears, lasers, and colour bombs that have a projectile style with a prefab.
+        /// </summary>
+        private bool IsBlast(TileEffectActivatedEvent activated)
+        {
+            if (activated is LineClearActivatedEvent || activated is LaserActivatedEvent) return true;
+
+            ProjectileStyleSO style = GetProjectileStyle(activated);
+            return style != null && style.Prefab != null;
+        }
+
+        /// <summary>
+        /// The style of the projectiles an effect sends to the tiles it hits: its own <see cref="TileEffect.Projectile"/>;
+        /// for a laser without one, the board's default. Null for effects that send none (a colour bomb without one, line clears…).
+        /// </summary>
+        private ProjectileStyleSO GetProjectileStyle(TileEffectActivatedEvent activated)
+        {
+            if (!(activated is LaserActivatedEvent) && !(activated is ColourBombActivatedEvent)) return null;
+
+            ProjectileStyleSO style = activated.Effect.Projectile;
+            if (style == null && activated is LaserActivatedEvent) style = settings.DefaultLaserProjectile;
+            return style;
+        }
+
         /// <summary>Cells from a line clear's centre to the board's edge on each side.</summary>
         private void GetArmLengths(LineClearActivatedEvent line, out float back, out float forward)
         {
@@ -350,13 +401,29 @@ namespace ggo2026
                 PendingBlast pending = pendingBlasts[i];
                 if (elapsed < pending.StartTime) continue;
 
-                LaunchBlast(pending.Line, elapsed - pending.StartTime);
+                if (pending.HasTarget) LaunchProjectile(pending.Effect, pending.Target);
+                else if (pending.Effect is LineClearActivatedEvent line) LaunchLineBlast(line, elapsed - pending.StartTime);
                 pendingBlasts.RemoveAt(i);
             }
         }
 
+        /// <summary>
+        /// Sends one projectile in the effect's style from its tile to <paramref name="target"/>. Unlike a line blast it
+        /// can't start partway through its flight, so it may land up to a frame after its target starts to pop.
+        /// </summary>
+        private void LaunchProjectile(TileEffectActivatedEvent effect, Vector2Int target)
+        {
+            ProjectileStyleSO style = GetProjectileStyle(effect);
+            if (style == null || style.Prefab == null) return;
+
+            Vector3 origin = transform.TransformPoint(CellToLocal(effect.Cell));
+            // Parented to the board so it unloads with it.
+            DamageProjectile projectile = style.Spawn(origin, transform);
+            projectile.Launch(style, origin, transform.TransformPoint(CellToLocal(target)), GetEffectColour(effect.Tile));
+        }
+
         /// <summary>Plays a line clear's sound and spawns its two arms, <paramref name="age"/> seconds into their flight.</summary>
-        private void LaunchBlast(LineClearActivatedEvent line, float age)
+        private void LaunchLineBlast(LineClearActivatedEvent line, float age)
         {
             PlaySound(settings.LineBlastSound);
 
@@ -390,7 +457,7 @@ namespace ggo2026
                 if (encounter != null)
                 {
                     Vector3 origin = transform.TransformPoint(CellToLocal(activated.Cell));
-                    encounter.Play(activated.CombatEvents, origin, GetEffectColour(activated.Tile));
+                    encounter.Play(activated.CombatEvents, origin, GetEffectColour(activated.Tile), activated.Effect.Projectile);
                 }
             }
 

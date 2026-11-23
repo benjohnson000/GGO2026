@@ -9,16 +9,16 @@ EditorBuildSettings:
     path: Assets/Scenes/PersistentScene.unity
     guid: 14a1bec6dc656a04e879084204f37f62
   - enabled: 1
-    path: Assets/Scenes/Camera.unity
-    guid: 2a9aa6761c101524898d2b6e44c554c4
-  - enabled: 1
     path: Assets/Scenes/GameUtilities.unity
     guid: b9a8b96d91fcc6442b3dedc1fdbf1882
   - enabled: 1
+    path: Assets/Scenes/Camera.unity
+    guid: 2a9aa6761c101524898d2b6e44c554c4
+  - enabled: 1
+    path: Assets/Scenes/MainMenu.unity
+    guid: d6574d10978f41743b09ca2ee5ef457c
+  - enabled: 1
     path: Assets/Scenes/Game.unity
     guid: 8c9cfa26abfee488c85f1582747f6a02
-  - enabled: 1
-    path: Assets/Scenes/UI.unity
-    guid: 6c91076a513d6e2418669a3e03ea2da9
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}

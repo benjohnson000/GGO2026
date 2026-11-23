@@ -163,7 +163,10 @@ The starting deck contains many tiles of each colour. These **plain tiles** have
 - **Turns:** the enemy only gets a turn when its intent fires (its countdown reaches 0). Swaps that only tick the countdown are not enemy turns. The player's turn starts right after the enemy's turn, so each side gets one turn per enemy action.
 - Block is lost at the **start of its owner's turn**, so the player's block lasts until the enemy has acted. Charms may change this (e.g. "only lose 50% of your block at the start of your turn").
 - Status effects (poison, stun, etc.) are a major part of the game and can be on either side.
-- **Poison:** ticks at the start of its owner's turn (so enemy poison ticks at the start of the enemy turn), dealing damage equal to its stacks, then loses a configurable number of stacks (1 by default).
+- **Poison:** ticks at the start of its owner's turn (so enemy poison ticks at the start of the enemy turn), dealing damage equal to its stacks, then loses a configurable number of stacks (1 by default). The poison asset can instead be set to tick after every swap (before the enemy countdown ticks).
+- **Health bar:** rectangular (a decorative frame is planned). Each damaging status (poison, and later others such as burn or bleed) shows its upcoming damage as its own coloured band, so several can show at once. The preview allows for preserved block.
+- **Block display:** block appears on the health bar with its own icon and number, not among the status icons.
+- **Damage display:** the main fill moves back as each hit lands, revealing a differently coloured underfill, which catches up once all effects have resolved.
 - **Player health carries over** between encounters. This should be configurable in settings and changeable by a charm.
 - Charms and statuses hook into combat events such as damage taken (e.g. "whenever you take damage, apply 5 poison").
 
@@ -231,7 +234,7 @@ The starting deck contains many tiles of each colour. These **plain tiles** have
 
 ## Open Questions
 
-- Does poison damage ignore block? (The poison asset has a toggle, on by default.)
+- Does poison damage ignore block? (The poison asset has a toggle, on by default. Block is lost before poison ticks, so this only matters when block is preserved or gained again first.)
 - Enemy tiles: does black match with other black tiles? Are enemy tiles removed from the pool when the encounter ends?
 - What boss phases change, given that board-shifting enemy actions are out of scope.
 - Enemy roster and affix list for the jam.

@@ -1,4 +1,5 @@
 using System.Collections;
+using benjohnson;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -6,37 +7,40 @@ using UnityEngine.UI;
 namespace ggo2026
 {
     /// <summary>
-    /// One icon in a <see cref="StatusRowView"/>: a sprite (or a lettered square without one) and a stack badge.
-    /// Built in code so no prefab is needed. Pops in, pulses when its count changes and shrinks out when removed.
+    /// One icon in a <see cref="StatusRowView"/>, on the root of the row's icon prefab. The prefab decides the size,
+    /// layout, font and badge; this fills in the status's sprite, colour and stacks, and outlines the icon. Pops in,
+    /// pulses when its count changes and shrinks out when removed.
     /// </summary>
+    [RequireComponent(typeof(RectTransform))]
     public class StatusIconView : MonoBehaviour
     {
-        // Proportions of the icon's size.
-        private const float LetterSize = 0.65f;
-        private const float BadgeHeight = 0.48f;
-        private const float BadgeOverhang = 0.12f;
-        private const float DigitWidth = 0.62f; // Of the badge's height.
+        [Tooltip("Gets the status's icon and colour, and an outline (add a Pixel Outline to it to tune that). A status without an icon is a square of its colour.")]
+        [SerializeField] private Image iconImage;
+
+        [Tooltip("Shows the stacks.")]
+        [SerializeField] private TMP_Text countText;
+
+        [Tooltip("Optional. Shows the status's first letter while it has no icon.")]
+        [SerializeField] private TMP_Text letterText;
 
         private StatusRowView row;
-        private RectTransform badge;
-        private TMP_Text countText;
+        private Vector3 restScale;
+        private float currentScale = 1f;
         private Coroutine routine;
         private int count;
         private bool removing;
 
         public RectTransform Rect { get; private set; }
 
-        /// <summary>Creates an icon under <paramref name="row"/>, which supplies the size, colours, font and timings.</summary>
-        public static StatusIconView Create(StatusRowView row, string label, Sprite sprite, Color colour)
-        {
-            RectTransform rect = CreateRect($"Status ({label})", row.transform);
-            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 1f);
-            rect.sizeDelta = Vector2.one * row.IconSize;
+        /// <summary>The space the icon takes in a row, from the prefab root's size and scale.</summary>
+        public Vector2 Size { get; private set; }
 
-            StatusIconView view = rect.gameObject.AddComponent<StatusIconView>();
-            view.Rect = rect;
-            view.row = row;
-            view.Build(label, sprite, colour);
+        /// <summary>Creates a copy of <paramref name="prefab"/> under <paramref name="row"/>, showing <paramref name="status"/>.</summary>
+        public static StatusIconView Create(StatusIconView prefab, StatusRowView row, StatusDataSO status)
+        {
+            StatusIconView view = Instantiate(prefab, row.transform, false);
+            view.name = $"Status ({status.DisplayName})";
+            view.Init(row, status);
             return view;
         }
 
@@ -47,18 +51,15 @@ namespace ggo2026
 
             bool appearing = count == 0;
             count = newCount;
-            countText.text = count.ToString();
-
-            float height = row.IconSize * BadgeHeight;
-            badge.sizeDelta = new Vector2(Mathf.Max(height, height * DigitWidth * (countText.text.Length + 0.5f)), height);
+            if (countText != null) countText.text = count.ToString();
 
             if (!animate || !isActiveAndEnabled)
             {
-                transform.localScale = Vector3.one;
+                SetScale(1f);
                 return;
             }
 
-            if (appearing) transform.localScale = Vector3.zero;
+            if (appearing) SetScale(0f);
             StartAnimation(1f, row.PulseScale - 1f, row.PulseDuration);
         }
 
@@ -81,28 +82,43 @@ namespace ggo2026
             // Disabling stops coroutines, so jump to where the animation was heading.
             routine = null;
             if (removing) Destroy(gameObject);
-            else transform.localScale = Vector3.one;
+            else if (row != null) SetScale(1f);
         }
 
-        private void Build(string label, Sprite sprite, Color colour)
+        private void Init(StatusRowView owner, StatusDataSO status)
         {
-            Image image = CreateImage("Icon", transform, colour);
-            image.sprite = sprite;
-            image.preserveAspect = true;
-            Stretch(image.rectTransform);
+            row = owner;
+            restScale = transform.localScale;
 
-            if (sprite == null && !string.IsNullOrEmpty(label))
-            {
-                TMP_Text letter = CreateText("Letter", image.transform, row.IconSize * LetterSize, row.BadgeColour);
-                letter.text = label.Substring(0, 1).ToUpperInvariant();
-            }
+            Rect = (RectTransform)transform;
+            Size = Vector2.Scale(Rect.rect.size, restScale);
+            // The row places icons by their centre, measured from its top centre.
+            Rect.anchorMin = Rect.anchorMax = new Vector2(0.5f, 1f);
+            Rect.pivot = new Vector2(0.5f, 0.5f);
 
-            Image badgeImage = CreateImage("Stacks", transform, row.BadgeColour);
-            badge = badgeImage.rectTransform;
-            badge.anchorMin = badge.anchorMax = badge.pivot = new Vector2(1f, 0f);
-            badge.anchoredPosition = new Vector2(1f, -1f) * (row.IconSize * BadgeOverhang);
+            if (iconImage != null) SetUpIcon(status);
 
-            countText = CreateText("Count", badge, row.IconSize * BadgeHeight, row.CountColour);
+            if (letterText == null) return;
+
+            string label = status.DisplayName;
+            bool showLetter = status.Icon == null && !string.IsNullOrEmpty(label);
+            letterText.gameObject.SetActive(showLetter);
+            if (showLetter) letterText.text = label.Substring(0, 1).ToUpperInvariant();
+        }
+
+        private void SetUpIcon(StatusDataSO status)
+        {
+            iconImage.sprite = status.Icon;
+            iconImage.color = status.Colour;
+
+            // One added to the prefab keeps its own settings. Otherwise the defaults match the tiles' outline.
+            if (!iconImage.TryGetComponent(out PixelOutline _)) iconImage.gameObject.AddComponent<PixelOutline>();
+        }
+
+        private void SetScale(float scale)
+        {
+            currentScale = scale;
+            transform.localScale = restScale * scale;
         }
 
         private void StartAnimation(float targetScale, float bump, float duration)
@@ -111,60 +127,20 @@ namespace ggo2026
             routine = StartCoroutine(Animate(targetScale, bump, duration));
         }
 
-        /// <summary>Scales to the target, swelling by <paramref name="bump"/> on the way.</summary>
+        /// <summary>Scales to the target, relative to the prefab's scale, swelling by <paramref name="bump"/> on the way.</summary>
         private IEnumerator Animate(float targetScale, float bump, float duration)
         {
-            float startScale = transform.localScale.x;
+            float startScale = currentScale;
             for (float elapsed = 0f; elapsed < duration; elapsed += Time.deltaTime)
             {
                 float t = elapsed / duration;
-                float scale = Mathf.SmoothStep(startScale, targetScale, t) + Mathf.Sin(t * Mathf.PI) * bump;
-                transform.localScale = Vector3.one * scale;
+                SetScale(Mathf.SmoothStep(startScale, targetScale, t) + Mathf.Sin(t * Mathf.PI) * bump);
                 yield return null;
             }
 
-            transform.localScale = Vector3.one * targetScale;
+            SetScale(targetScale);
             routine = null;
             if (removing) Destroy(gameObject);
-        }
-
-        private static Image CreateImage(string objectName, Transform parent, Color colour)
-        {
-            Image image = CreateRect(objectName, parent).gameObject.AddComponent<Image>();
-            image.color = colour;
-            image.raycastTarget = false;
-            return image;
-        }
-
-        private TMP_Text CreateText(string objectName, Transform parent, float size, Color colour)
-        {
-            TextMeshProUGUI text = CreateRect(objectName, parent).gameObject.AddComponent<TextMeshProUGUI>();
-            if (row.Font != null) text.font = row.Font;
-            text.fontSize = size;
-            text.color = colour;
-            text.alignment = TextAlignmentOptions.Center;
-            text.textWrappingMode = TextWrappingModes.NoWrap;
-            text.raycastTarget = false;
-            Stretch(text.rectTransform);
-            return text;
-        }
-
-        private static RectTransform CreateRect(string objectName, Transform parent)
-        {
-            GameObject child = new GameObject(objectName, typeof(RectTransform));
-            child.layer = parent.gameObject.layer;
-
-            RectTransform rect = (RectTransform)child.transform;
-            rect.SetParent(parent, false);
-            return rect;
-        }
-
-        private static void Stretch(RectTransform rect)
-        {
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
         }
     }
 }

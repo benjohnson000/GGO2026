@@ -192,7 +192,9 @@ each entry; add, remove and reorder entries with the normal list controls.
 | Effect | Fields | Does |
 |---|---|---|
 | `LineClearEffect` | `clearAcrossSwap` (default on) | Destroys the rest of its row or column. Line is picked when it fires: perpendicular to a line clear that hit it; else from the swap that matched it (on: sideways swap → column, up/down → row, as in Candy Crush; off: along the swap); else random. If that line has no tiles left when it fires (emptied by the match or an earlier effect in the same step), it takes the other line, so it only destroys nothing when both are empty. `Targets` run from the tile outward (ties: left before right, below before above), which is also the order their effects fire in. Emits `LineClearActivatedEvent` with the `Axis`. |
-| `ColourBombEffect` | none | `ActivatesOnSwap`. Destroys every tile of one colour: the swapped tile's colour; when not fired by a swap (e.g. hit by a line clear), the most common colour on the board (ties → earlier in `TileColourUtils.All`). Swapped with another tile that has a colour bomb effect: destroys the whole board. Meant for a colourless (`None`) tile, which never matches. Emits `ColourBombActivatedEvent` with the `Colour` (`None` for the whole board). |
+| `ColourBombEffect` | `projectile` (optional; the board view sends one to each destroyed tile) | `ActivatesOnSwap`. Destroys every tile of one colour: the swapped tile's colour; when not fired by a swap (e.g. hit by a line clear), the most common colour on the board (ties → earlier in `TileColourUtils.All`). Swapped with another tile that has a colour bomb effect: destroys the whole board. `Targets` are shuffled with the board's rng, so tiles are destroyed, fire their effects and pop in a random order. Meant for a colourless (`None`) tile, which never matches. Emits `ColourBombActivatedEvent` with the `Colour` (`None` for the whole board). |
+| `LaserEffect` | `count` (1), `preferTilesWithEffects` (default on) | Fires `count` lasers, each at a different random tile still on the board (picked with the board's rng after the match and any earlier effects in the step have destroyed theirs), and destroys them. With `preferTilesWithEffects` on, it picks from tiles that have effects first and only hits plain tiles once none are left. Destroying them which fires their effects. Fewer fire if fewer tiles are left; returns null if none are. `Targets` are sorted nearest first (straight-line distance), which is also the order their effects fire in. Emits `LaserActivatedEvent`. |
+| `ExplosionEffect` | `radius` (1), `activatesOnSwap` (default on) | With `activatesOnSwap` on, `ActivatesOnSwap`: swapping it with any neighbour fires it, centred on the cell it was swapped into (so the partner, now in the bomb's old cell, is caught in the blast). Destroys every tile in the square within `radius` cells of it (1 = 3x3, 2 = 5x5), clipped to the board. Empty cells are skipped. `Targets` run from the tile outward one ring at a time (square distance), edges before corners within a ring, which is also the order their effects fire in. No visual of its own: the board view pops the targets at `PopInterval`. Emits `ExplosionActivatedEvent` with the `Radius`. |
 | `DealDamageEffect` | `amount` (3) | `DealDamageAction` from owner to opponent, tagged with the tile's colour. |
 | `GainBlockEffect` | `amount` (3) | `GainBlockAction` on the owner. |
 | `HealEffect` | `amount` (2) | `HealAction` on the owner. |
@@ -209,7 +211,11 @@ queues the action from `CreateAction(context)` and returns a plain `TileEffectAc
    - **Anything else:** derive from `TileEffect`, override `Activate` and return a
      `TileEffectActivatedEvent` (subclass it if listeners need more detail). Queue any combat actions on
      `context.Combat` rather than running them.
-2. It appears in each entry's type picker in the tile inspector automatically.
+2. It appears in each entry's type picker in the tile inspector automatically, with the base class's
+   optional `projectile` field ([projectile style](Combat.md#projectile-styles)) for how its hits fly.
+   If the effect never sends a projectile (no combat actions, no projectiles of its own), override
+   `UsesProjectile` to return false and the inspector hides that field (`ProjectileFieldAttribute`, drawn by
+   `Editor/ProjectileFieldDrawer`). `LineClearEffect` does this.
 3. Renaming or moving the class breaks existing references; use `[UnityEngine.Scripting.APIUpdating.MovedFrom]`.
 
 ## Board events
@@ -224,6 +230,8 @@ queues the action from `CreateAction(context)` and returns a plain `TileEffectAc
 | `TileEffectActivatedEvent` | `Effect`, `Tile`, `Cell`, `Targets`, `CombatEvents` | One effect of a destroyed tile fires (one event per effect that did something). Followed by the `TileDestroyedEvent`s it causes |
 | `LineClearActivatedEvent` | + `Axis` | Subclass for `LineClearEffect` |
 | `ColourBombActivatedEvent` | + `Colour` | Subclass for `ColourBombEffect`. `None` = whole board |
+| `LaserActivatedEvent` | – | Subclass for `LaserEffect`. `Targets` are the cells shot, nearest first |
+| `ExplosionActivatedEvent` | + `Radius` | Subclass for `ExplosionEffect`. `Targets` run from the centre outward, ring by ring |
 | `ComboCreatedEvent` | `Tile`, `Cell`, `Group` | A match made a combo tile, after all of the step's destroys and before gravity |
 | `TileMovedEvent` | `Tile`, `From`, `To` | A tile falls during gravity |
 | `TileSpawnedEvent` | `Tile`, `Cell`, `SpawnCell` | A tile is drawn into a cell. `SpawnCell.y >= Height` |

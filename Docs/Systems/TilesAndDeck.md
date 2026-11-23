@@ -115,6 +115,8 @@ palette colour 2, matching the default shape source.
 `customSprite` (`HasCustomSprite`) is for tiles that need hand-drawn art. When set, `TileView` draws only
 that sprite, untinted (its own colours) and with the palette outline; shape, pattern, icon and their colour
 sources are ignored but kept, so clearing it restores the generated look. `colour` still decides matching.
+`customSpriteOutline` (`CustomSpriteOutline`, default on) turns the added outline off for sprites that already
+have one drawn in.
 Art should be 32Ã—32 at 16 PPU with a centred pivot, Mesh Type: Full Rect and â‰¥2 px transparent margin for
 the outline.
 
@@ -123,7 +125,7 @@ the outline.
 `TileDataSO.effects` is an ordered `[SerializeReference]` list of `TileEffect`s. Entries are added, removed
 and reordered in the tile inspector, each with a type picker (Animancer's polymorphic drawer), and stored
 inside the tile asset with their own values. How effects fire and how to add one is in
-[Board › Tile effects](Board.md#tile-effects). Board effects: `LineClearEffect`, `ColourBombEffect`. Combat
+[Board › Tile effects](Board.md#tile-effects). Board effects: `LineClearEffect`, `ColourBombEffect`, `LaserEffect`, `ExplosionEffect`. Combat
 effects: `DealDamageEffect`, `GainBlockEffect`, `HealEffect`, `ApplyStatusEffect`. Trigger order within a
 match and cascade interaction are still **open design questions**.
 Constraints already settled by the design that the implementation must respect:

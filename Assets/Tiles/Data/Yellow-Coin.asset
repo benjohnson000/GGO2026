@@ -22,5 +22,9 @@ MonoBehaviour:
   patternColorSource: 0
   patternColor: {r: 1, g: 1, b: 1, a: 1}
   icon: {fileID: 1136805583, guid: 772c731695356654bb3255554ec94552, type: 3}
-  iconColorSource: 4
+  iconColorSource: 2
   iconColor: {r: 1, g: 1, b: 1, a: 1}
+  effects: []
+  references:
+    version: 2
+    RefIds: []

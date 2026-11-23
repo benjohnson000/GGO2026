@@ -31,4 +31,5 @@ MonoBehaviour:
     RefIds:
     - rid: 7267738266728399127
       type: {class: ColourBombEffect, ns: ggo2026, asm: ggo2026}
-      data: 
+      data:
+        projectile: {fileID: 11400000, guid: f0c124bdcde459b40895030e6e459418, type: 2}

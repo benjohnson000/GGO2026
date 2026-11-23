@@ -27,8 +27,9 @@ namespace ggo2026
         [Tooltip("Optional. Shown when the player dies.")]
         [SerializeField] private GameObject defeatRoot;
 
-        [Tooltip("Optional. Flown from a tile to whoever it affects (damage, block, heal, status, countdown); the change shows when it lands. Without it, changes show instantly.")]
-        [SerializeField] private DamageProjectile damageProjectile;
+        [Tooltip("Optional. Projectile flown from a tile to whoever it affects (damage, block, heal, status, countdown) when the " +
+                 "effect has no Projectile of its own; the change shows when it lands. Without either, changes show instantly.")]
+        [SerializeField] private ProjectileStyleSO defaultProjectile;
 
         [Header("Debug")]
         [Min(1)]
@@ -52,6 +53,7 @@ namespace ggo2026
         // Events waiting to be shown, in order. An event is shown only once it and everything before it is ready,
         // so a projectile still in flight holds back later events and the views never show them out of order.
         private readonly Queue<QueuedEvent> queue = new Queue<QueuedEvent>();
+        private bool settlePending;
 
         private class QueuedEvent
         {
@@ -83,8 +85,8 @@ namespace ggo2026
 
             if (victoryRoot != null) victoryRoot.SetActive(false);
             if (defeatRoot != null) defeatRoot.SetActive(false);
-            if (playerView != null) playerView.Bind(Combat.Player);
-            if (enemyView != null) enemyView.Bind(Combat.Enemy);
+            if (playerView != null) playerView.Bind(Combat.Player, Combat.PreviewDamage(Combat.Player));
+            if (enemyView != null) enemyView.Bind(Combat.Enemy, Combat.PreviewDamage(Combat.Enemy));
             Play(Encounter.Begin());
         }
 
@@ -100,25 +102,36 @@ namespace ggo2026
         /// <summary>Shows events from the fight, in order. Instant unless queued behind a projectile still in flight.</summary>
         public void Play(IReadOnlyList<CombatEvent> events)
         {
-            Enqueue(events, null, Color.white);
+            Enqueue(events, null, Color.white, null);
         }
 
         /// <summary>
         /// Shows events caused by a tile at world position <paramref name="origin"/>. Each change to a combatant (see
-        /// <see cref="FliesToTarget"/>) launches the <see cref="damageProjectile"/> from there to that combatant and shows
-        /// once it lands; events after it wait for it. Projectiles take <paramref name="tileColour"/>.
+        /// <see cref="FliesToTarget"/>) launches a projectile from there to that combatant and shows once it lands;
+        /// events after it wait for it. Projectiles use <paramref name="style"/> (the firing effect's
+        /// <see cref="TileEffect.Projectile"/>), or <see cref="defaultProjectile"/> when null, and take <paramref name="tileColour"/>.
         /// </summary>
-        public void Play(IReadOnlyList<CombatEvent> events, Vector3 origin, Color tileColour)
+        public void Play(IReadOnlyList<CombatEvent> events, Vector3 origin, Color tileColour, ProjectileStyleSO style = null)
         {
-            Enqueue(events, origin, tileColour);
+            Enqueue(events, origin, tileColour, style != null ? style : defaultProjectile);
         }
 
-        private void Enqueue(IReadOnlyList<CombatEvent> events, Vector3? origin, Color tileColour)
+        /// <summary>
+        /// Call when a whole chain of effects has been played. Once the last of it is shown, the health bars' underfills
+        /// catch up. An empty queue can't be used for this, as it also empties between cascades.
+        /// </summary>
+        public void Settle()
+        {
+            settlePending = true;
+            Flush();
+        }
+
+        private void Enqueue(IReadOnlyList<CombatEvent> events, Vector3? origin, Color tileColour, ProjectileStyleSO style)
         {
             foreach (CombatEvent combatEvent in events)
             {
                 QueuedEvent queued = new QueuedEvent { Event = combatEvent, Ready = true };
-                if (origin.HasValue && FliesToTarget(combatEvent) && TryLaunch(combatEvent, origin.Value, tileColour, queued))
+                if (origin.HasValue && FliesToTarget(combatEvent) && TryLaunch(combatEvent, origin.Value, tileColour, style, queued))
                 {
                     queued.Ready = false;
                 }
@@ -135,16 +148,16 @@ namespace ggo2026
         }
 
         /// <summary>Launches a projectile at the event's target that marks <paramref name="queued"/> ready when it lands.</summary>
-        private bool TryLaunch(CombatEvent combatEvent, Vector3 origin, Color tileColour, QueuedEvent queued)
+        private bool TryLaunch(CombatEvent combatEvent, Vector3 origin, Color tileColour, ProjectileStyleSO style, QueuedEvent queued)
         {
-            if (damageProjectile == null) return false;
+            if (style == null || style.Prefab == null) return false;
             CombatantView targetView = ViewFor(combatEvent.Target);
             if (targetView == null) return false;
 
-            DamageProjectile projectile = Instantiate(damageProjectile, origin, Quaternion.identity);
+            DamageProjectile projectile = style.Spawn(origin);
             // Keep it in this fight's scene rather than whichever scene is active, so it unloads with the fight.
             SceneManager.MoveGameObjectToScene(projectile.gameObject, gameObject.scene);
-            projectile.Launch(origin, targetView.HitPoint, tileColour, () =>
+            projectile.Launch(style, origin, targetView.HitPoint, tileColour, () =>
             {
                 // A projectile cut short by the scene unloading must not update UI that is being destroyed.
                 if (this == null || !gameObject.scene.isLoaded) return;
@@ -169,6 +182,12 @@ namespace ggo2026
             {
                 Show(queue.Dequeue().Event);
             }
+
+            if (!settlePending || queue.Count > 0) return;
+
+            settlePending = false;
+            if (playerView != null) playerView.Settle();
+            if (enemyView != null) enemyView.Settle();
         }
 
         private void Show(CombatEvent combatEvent)
@@ -227,6 +246,7 @@ namespace ggo2026
                 return;
             }
             Play(Encounter.AdvanceSwap());
+            Settle();
         }
 
         private void DebugRun(System.Func<CombatAction> createAction)
@@ -244,6 +264,7 @@ namespace ggo2026
                 return;
             }
             Play(Combat.Execute(action));
+            Settle();
         }
     }
 }

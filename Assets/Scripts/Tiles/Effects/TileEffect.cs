@@ -1,5 +1,6 @@
 using System;
 using Animancer;
+using UnityEngine;
 
 namespace ggo2026
 {
@@ -16,6 +17,25 @@ namespace ggo2026
     [Serializable]
     public abstract class TileEffect : IPolymorphic
     {
+        [Tooltip("Optional. How this effect's hits fly from the tile: to the combatant it affects for combat effects, " +
+                 "to each target tile for a laser or colour bomb. Empty uses the default (EncounterView for combat, Board View Settings " +
+                 "for lasers; a colour bomb without one sends none).")]
+        [ProjectileField]
+        [SerializeField] private ProjectileStyleSO projectile;
+
+        /// <summary>
+        /// The projectile style for this effect's hits, or null for the default. Presentation only: the board and
+        /// combat rules never read it.
+        /// </summary>
+        public ProjectileStyleSO Projectile => projectile;
+
+        /// <summary>
+        /// False for effects that never send a projectile (e.g. line clears, which draw their own blast), so the
+        /// inspector hides <see cref="Projectile"/>. Override to return false when an effect neither queues combat
+        /// actions nor launches projectiles itself.
+        /// </summary>
+        public virtual bool UsesProjectile => true;
+
         /// <summary>
         /// True if swapping the tile with any neighbour is a valid move that fires it, even with no match.
         /// The tile is destroyed by the swap, with <see cref="TileEffectContext.SwappedWith"/> set. A tile fires on

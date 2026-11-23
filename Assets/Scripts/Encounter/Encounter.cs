@@ -46,11 +46,16 @@ namespace ggo2026
 
         /// <summary>
         /// Call after an accepted swap has fully resolved (matches, cascades and, later, passives).
-        /// Ticks the enemy's countdown and, if it reaches 0, runs the enemy's turn and the start of the player's.
+        /// Fires per-swap triggers (<see cref="EndSwapAction"/>), then ticks the enemy's countdown and, if it
+        /// reaches 0, runs the enemy's turn and the start of the player's.
         /// </summary>
         public List<CombatEvent> AdvanceSwap()
         {
             List<CombatEvent> events = new List<CombatEvent>();
+            if (IsOver) return events;
+
+            // Per-swap triggers (e.g. per-swap poison) resolve first, so they can end the fight before the enemy acts.
+            events.AddRange(Combat.Execute(new EndSwapAction()));
             if (IsOver || CurrentIntent == null) return events;
 
             events.AddRange(Combat.Execute(new ChangeCountdownAction(Enemy, -1)));
