@@ -33,8 +33,8 @@ namespace ggo2026
         [Tooltip("Optional. Shows the amount of block.")]
         [SerializeField] private TMP_Text blockText;
 
-        [Header("Block Break")]
-        [Tooltip("Optional. The whole block icon, under Block Root. Hidden while the broken halves play. The break needs this and both halves.")]
+        [Header("Block Animation")]
+        [Tooltip("Optional. The whole block icon, under Block Root. Floats down and fades in when block is gained from 0, and is hidden while the broken halves play. The break needs this and both halves.")]
         [SerializeField] private GameObject blockIcon;
 
         [Tooltip("Optional. Left half of the broken block icon, under Block Root and placed over the whole icon. Hidden until a hit breaks the block, then slides left and fades.")]
@@ -57,6 +57,13 @@ namespace ggo2026
         private bool breakInterrupted;
         private Vector2 leftRest;
         private Vector2 rightRest;
+        private Coroutine appearRoutine;
+        private bool appearInterrupted;
+        private RectTransform blockIconRect;
+        private Graphic blockIconGraphic;
+        private Vector2 iconRest;
+        // The block last shown; -1 after a reset, so block that is already there appears without animating.
+        private int shownBlock = -1;
 
         private bool CanBreak => blockRoot != null && blockIcon != null && brokenBlockLeft != null && brokenBlockRight != null;
 
@@ -76,6 +83,8 @@ namespace ggo2026
             if (model == null) Build();
             StopSettling();
             StopBreak();
+            StopAppear();
+            shownBlock = -1;
             model.Reset(health);
         }
 
@@ -89,6 +98,7 @@ namespace ggo2026
             if (model == null || !CanBreak || !blockRoot.activeSelf || !isActiveAndEnabled) return;
             if (activeSettings.BlockBreakDuration <= 0f) return;
 
+            StopAppear();
             StopBreak();
             breakRoutine = StartCoroutine(AnimateBreak());
         }
@@ -100,8 +110,12 @@ namespace ggo2026
             if (healthText != null) healthText.text = $"{health} / {maxHealth}";
             // New block cancels a break; so does one cut short by disabling the bar. A break in progress keeps the root.
             if (block > 0 || breakRoutine == null) StopBreak();
+            // Losing block, or being disabled, ends an appear. More block while it plays lets it finish.
+            if (block == 0 || appearInterrupted) StopAppear();
             if (blockRoot != null) blockRoot.SetActive(block > 0 || breakRoutine != null);
             if (blockText != null) blockText.text = block.ToString();
+            if (shownBlock == 0 && block > 0) StartAppear();
+            shownBlock = block;
             if (model == null) return;
 
             model.SetHealth(health);
@@ -147,6 +161,8 @@ namespace ggo2026
             // Children can't be activated or deactivated while this is being disabled, so the next Show tidies up.
             if (breakRoutine != null) breakInterrupted = true;
             breakRoutine = null;
+            if (appearRoutine != null) appearInterrupted = true;
+            appearRoutine = null;
         }
 
         private void OnDestroy()
@@ -167,6 +183,13 @@ namespace ggo2026
                 rightRest = brokenBlockRight.rectTransform.anchoredPosition;
                 brokenBlockLeft.gameObject.SetActive(false);
                 brokenBlockRight.gameObject.SetActive(false);
+            }
+
+            if (blockIcon != null)
+            {
+                blockIconRect = blockIcon.transform as RectTransform;
+                blockIconGraphic = blockIcon.GetComponent<Graphic>();
+                if (blockIconRect != null) iconRest = blockIconRect.anchoredPosition;
             }
 
             if (underfill == null)
@@ -235,6 +258,57 @@ namespace ggo2026
         {
             if (settleRoutine != null) StopCoroutine(settleRoutine);
             settleRoutine = null;
+        }
+
+        private void StartAppear()
+        {
+            StopAppear();
+            if (blockRoot == null || blockIconRect == null || !isActiveAndEnabled) return;
+            if (activeSettings.BlockAppearDuration <= 0f) return;
+
+            appearRoutine = StartCoroutine(AnimateAppear());
+        }
+
+        /// <summary>Ends any appear straight away, with the icon in place and the number showing.</summary>
+        private void StopAppear()
+        {
+            bool wasAppearing = appearRoutine != null || appearInterrupted;
+            if (appearRoutine != null) StopCoroutine(appearRoutine);
+            appearRoutine = null;
+            appearInterrupted = false;
+            if (wasAppearing) FinishAppear();
+        }
+
+        private void FinishAppear()
+        {
+            PlaceIcon(0f, 1f);
+            if (BlockTextHides) blockText.gameObject.SetActive(true);
+        }
+
+        private IEnumerator AnimateAppear()
+        {
+            if (BlockTextHides) blockText.gameObject.SetActive(false);
+
+            float duration = activeSettings.BlockAppearDuration;
+            float height = activeSettings.BlockAppearHeight;
+            for (float elapsed = 0f; elapsed < duration; elapsed += Time.deltaTime)
+            {
+                float t = elapsed / duration;
+                // Ease out: it drops in quickly and settles into place.
+                float eased = 1f - (1f - t) * (1f - t);
+                PlaceIcon((1f - eased) * height, t);
+                yield return null;
+            }
+
+            appearRoutine = null;
+            FinishAppear();
+        }
+
+        private void PlaceIcon(float height, float alpha)
+        {
+            if (blockIconRect != null) blockIconRect.anchoredPosition = iconRest + Vector2.up * height;
+            // The CanvasRenderer's alpha, so the icon's own colour is kept.
+            if (blockIconGraphic != null) blockIconGraphic.canvasRenderer.SetAlpha(alpha);
         }
 
         /// <summary>Ends any break straight away and puts the whole icon back. The caller decides whether the root shows.</summary>

@@ -276,7 +276,7 @@ sends a projectile to each tile it destroys, without one it sends none
 | `healthText` | no | Shows "health / max health" |
 | `blockRoot` | no | Root of the block icon and number. Active only while block is above 0 |
 | `blockText` | no | Shows the amount of block |
-| `blockIcon` | no | The whole block icon. Hidden while it breaks |
+| `blockIcon` | no | The whole block icon. Floats in when block is gained, hidden while it breaks |
 | `brokenBlockLeft`, `brokenBlockRight` | no | The broken icon's halves, placed over the whole icon. Hidden at rest. The break needs these and `blockIcon` |
 | `settings` | no | A `HealthBarSettingsSO` |
 
@@ -310,10 +310,15 @@ they cover all remaining health, the next turn start is lethal.
   keep the bar inside a frame, inset the fill's rect; the copies follow it.
 - **Block** is shown here, not as a status icon: `blockRoot` and `blockText`, plus the fill's tint. It follows
   playback like health, so it changes when the event is shown.
+- **Block appear:** when `Show` goes from 0 block to more, `blockIcon` starts `blockAppearHeight` above its
+  place, invisible, and floats down (eased out) while fading in over `blockAppearDuration`. The number is
+  hidden until it lands. Block gained again while it plays doesn't restart it; losing block ends it. Block
+  already there when the bar is bound appears without animating. Needs only `blockIcon`.
 - **Block break:** when a hit takes block from above 0 to 0 (`DamageEvent` with `Blocked > 0` and
-  `BlockAfter == 0`), `CombatantView` calls `HealthBarView.BreakBlock()` before showing the hit. The icon and
+  `BlockAfter == 0`), or block is cleared (`BlockChangedEvent` from above 0 to 0, e.g. at turn start),
+  `CombatantView` calls `HealthBarView.BreakBlock()` before showing the change. The icon and
   number hide, the two halves appear where the icon was, slide apart horizontally (eased out) and fade, then
-  `blockRoot` hides. Block lost at turn start doesn't break, it just disappears. Gaining block mid-break cancels
+  `blockRoot` hides. Only a hit plays `shieldBrokenSound`; clearing is silent. Gaining block mid-break cancels
   it and shows the whole icon again. Without the icon and both halves, the block just disappears.
 - **Band colour:** a status's `colour`, or its `barColour` with `overrideBarColour` on (for full-colour
   icons, whose `colour` is white). Always opaque.
@@ -333,6 +338,8 @@ they cover all remaining health, the next turn start is lethal.
 | `blockedHealthColour` | blue | Health fill while there is block |
 | `holdDuration` | 0.3 s | Wait after settling |
 | `drainDuration` | 0.4 s | Underfill catching up |
+| `blockAppearDuration` | 0.25 s | Block icon floating down and fading in, before the number shows. 0 shows it straight away |
+| `blockAppearHeight` | 0.5 | How far above its place the icon starts, in canvas units |
 | `blockBreakDuration` | 0.35 s | Broken halves sliding apart and fading. 0 hides the block straight away |
 | `blockBreakDistance` | 0.75 | How far each half slides, in canvas units (the block icon is 2 wide) |
 

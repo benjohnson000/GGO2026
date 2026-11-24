@@ -22,6 +22,14 @@ namespace ggo2026
         [Tooltip("Seconds the underfill then takes to reach the health fill.")]
         [SerializeField] private float drainDuration = 0.4f;
 
+        [Header("Block Appear")]
+        [Min(0f)]
+        [Tooltip("Seconds the block icon takes to float down and fade in when block is gained from 0. The number shows after. 0 shows it straight away.")]
+        [SerializeField] private float blockAppearDuration = 0.25f;
+
+        [Tooltip("How far above its place the block icon starts, in canvas units (the icon is 2 tall).")]
+        [SerializeField] private float blockAppearHeight = 0.5f;
+
         [Header("Block Break")]
         [Min(0f)]
         [Tooltip("Seconds the broken block icon's halves take to slide apart and fade out. 0 hides the block straight away.")]
@@ -34,6 +42,8 @@ namespace ggo2026
         public Color BlockedHealthColour => blockedHealthColour;
         public float HoldDuration => holdDuration;
         public float DrainDuration => drainDuration;
+        public float BlockAppearDuration => blockAppearDuration;
+        public float BlockAppearHeight => blockAppearHeight;
         public float BlockBreakDuration => blockBreakDuration;
         public float BlockBreakDistance => blockBreakDistance;
     }

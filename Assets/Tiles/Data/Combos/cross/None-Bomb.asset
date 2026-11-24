@@ -34,5 +34,5 @@ MonoBehaviour:
       type: {class: ExplosionEffect, ns: ggo2026, asm: ggo2026}
       data:
         projectile: {fileID: 0}
-        radius: 2
+        radius: 1
         activatesOnSwap: 1

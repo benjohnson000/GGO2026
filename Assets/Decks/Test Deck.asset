@@ -23,5 +23,3 @@ MonoBehaviour:
     count: 25
   - tile: {fileID: 11400000, guid: a5e93feab0fe5f040b306db10f786661, type: 2}
     count: 25
-  - tile: {fileID: 11400000, guid: c5228837cf29a04439341e961e624054, type: 2}
-    count: 25

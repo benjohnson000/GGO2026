@@ -105,6 +105,8 @@ namespace ggo2026
                     break;
                 case BlockChangedEvent blockChanged:
                     block = blockChanged.NewBlock;
+                    // Block cleared, e.g. at turn start: the same break as a hit, but silent.
+                    if (blockChanged.OldBlock > 0 && blockChanged.NewBlock == 0 && healthBar != null) healthBar.BreakBlock();
                     break;
                 case StatusChangedEvent status:
                     if (statusRow != null) statusRow.SetStatus(status.Status, status.NewStacks, true);
@@ -143,7 +145,7 @@ namespace ggo2026
             {
                 if (damage.BlockAfter == 0)
                 {
-                    // Only a hit breaks the block. Block lost at turn start just disappears.
+                    // Only a hit plays the sound. Block cleared at turn start breaks silently (see Apply).
                     PlaySound(shieldBrokenSound);
                     if (healthBar != null) healthBar.BreakBlock();
                 }
