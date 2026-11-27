@@ -146,6 +146,7 @@ The starting deck contains many tiles of each colour. These **plain tiles** have
   - Destroyed without being swapped (e.g. hit by a line clear): destroys every tile of the most common colour on the board.
   - Swapped with another colour bomb: destroys the whole board.
   - Which match shape makes it is set in the board config's combo rules (5 in a line is the natural fit).
+- **Bomb** (Explosion effect) is **coloured**, one per colour, like Striped tiles. It fires only when matched or hit by another effect, not on swap, and destroys the 3x3 area around it.
 - What a combo does is the combo tile's own effect, not a board setting.
 - Not decided yet: what the square, T/L and 5-line combos do, and whether swapping two combos together does something special.
 - **Initial fill:** avoids creating matches where the pool allows it.

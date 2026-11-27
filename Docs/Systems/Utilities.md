@@ -12,7 +12,7 @@ from here.** Use these before writing new infrastructure.
 | [Input](#input) | `InputManager.cs` | Pointer press / move / release events |
 | [Audio](#audio) | `Sound/` | One-shot SFX and looping music |
 | [Save/load](#saveload) | `SaveLoad/SaveLoadSystem.cs` | JSON files in `persistentDataPath` |
-| [Misc](#misc) | `Utilities.cs`, `CanvasCameraAssigner.cs`, `MatchWorldCanvasToCamera.cs`, `DisableOnStart.cs`, `RendererTint.cs`, `PixelOutline.cs`, `GraphicFlash.cs` | Small helpers |
+| [Misc](#misc) | `Utilities.cs`, `CanvasCameraAssigner.cs`, `MatchWorldCanvasToCamera.cs`, `DisableOnStart.cs`, `RendererTint.cs`, `PixelOutline.cs`, `GraphicFlash.cs`, `ScrollingSprite.cs`, `Bob.cs` | Small helpers |
 
 ## Singleton<T>
 
@@ -193,4 +193,6 @@ SaveLoadSystem.Exists("run"); SaveLoadSystem.Delete("run");
 | `DisableOnStart` | Deactivates its GameObject in `Start` (handy for editor-only helpers) |
 | `RendererTint.Multiply(root, tint)` | Multiplies the RGB of sprites, trail gradients and single-colour particles under a freshly spawned object, keeping their alpha. Multiplies again if called again |
 | `PixelOutline` | Component for a UI Graphic: a rounded pixel outline (`colour`, `thickness` 0–3 px, `pixelsPerUnit` 16) made of offset copies behind it. Needs no material or sprite margin. Exact on white art; on coloured art the outline is darkened by the art |
+| `ScrollingSprite` | Component for a Tiled-mode SpriteRenderer: scrolls it along X at `speed` world units/s (negative = left; randomly varied by up to ±`speedVariance`, default 10%, picked once on Awake) forever, starting at a random point within one tile when `randomizeStartOffset` is on (default), snapping back by one tile width so the loop is seamless. The renderer's width must cover the camera view plus one tile. Used on the parallax background layers in the `Camera` scene |
+| `Bob` | Component: bobs its object up and down on a sine wave around its starting local position (`amplitude` local units, `period` seconds per cycle, randomly varied by up to ±`periodVariance`, default 10%, picked once on Awake). `randomizePhase` (on by default) starts each object at a random point in the cycle so several don't move in sync. It overwrites `localPosition` every frame, so put it on a parent of anything other code moves. Disabling it puts the object back where it started |
 | `GraphicFlash` | Component for a UI Graphic: `Flash()` turns it `flashColour` (default white; alpha sets the strength) for `holdDuration` (default 0.08 s, always at least one frame), then fades back over `fadeDuration` (default 0, which snaps straight back, as most pixel art games do). A new flash restarts it; disabling clears it. Needs `flashShader` set to a UI shader with `_FlashColor` and `_FlashAmount`, such as `GGO2026/UI Flash` (`Assets/Art/Shaders/UIFlash.shader`, UI/Default plus the flash, masks still work). It gives the Graphic its own material instance, replacing any it had, and logs an error if the shader is missing |

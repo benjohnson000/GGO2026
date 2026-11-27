@@ -7,7 +7,7 @@ namespace ggo2026
     /// <summary>
     /// Bomb tile: destroys every tile in the square of cells within <see cref="Radius"/> of it (radius 1 is the 3x3
     /// around it, 2 is 5x5…), which fires their effects. Tiles are destroyed from the bomb outward, one ring at a time.
-    /// By default it also fires when swapped with any neighbour, exploding from the cell it was swapped into.
+    /// Meant for a coloured tile: like any other tile it fires when matched or hit by another effect, not on swap.
     /// </summary>
     [Serializable]
     public class ExplosionEffect : TileEffect
@@ -16,15 +16,10 @@ namespace ggo2026
         [Min(1)]
         [SerializeField] private int radius = 1;
 
-        [Tooltip("On: swapping the tile with any neighbour fires it, even with no match. It explodes from the cell it was swapped into.")]
-        [SerializeField] private bool activatesOnSwap = true;
-
         public int Radius => radius;
 
         // Queues no combat actions and sends no projectiles.
         public override bool UsesProjectile => false;
-
-        public override bool ActivatesOnSwap => activatesOnSwap;
 
         public override TileEffectActivatedEvent Activate(TileEffectContext context)
         {

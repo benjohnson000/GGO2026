@@ -13,8 +13,8 @@ namespace ggo2026
     public class BoardView : StateMachine<EBoardState>
     {
         /// <summary>
-        /// A visual yet to launch in the current pop run: a line clear's blast, or one projectile from a laser or
-        /// colour bomb to <see cref="Target"/>.
+        /// A visual yet to launch in the current pop run: a line clear's blast, a bomb's explosion circle, or one
+        /// projectile from a laser or colour bomb to <see cref="Target"/>.
         /// </summary>
         private struct PendingBlast
         {
@@ -295,11 +295,22 @@ namespace ggo2026
             TileEffectActivatedEvent blast = null;
             ProjectileStyleSO blastStyle = null;
             int blastHits = 0;
+            ExplosionActivatedEvent explosion = null;
+            float explosionStart = 0f;
 
             for (int i = start; i < end; i++)
             {
                 if (events[i] is TileEffectActivatedEvent activated)
                 {
+                    // A bomb's circle bursts out on the next pop beat, and its tiles pop ring by ring as it reaches them.
+                    explosion = activated as ExplosionActivatedEvent;
+                    if (explosion != null)
+                    {
+                        explosionStart = nextBeat;
+                        pendingBlasts.Add(new PendingBlast { Effect = activated, StartTime = explosionStart });
+                        blastsEnd = Mathf.Max(blastsEnd, explosionStart);
+                    }
+
                     // The board logs an effect's destroys straight after it, up to the next effect.
                     blast = IsBlast(activated) ? activated : null;
                     if (blast == null) continue;
@@ -322,7 +333,11 @@ namespace ggo2026
                 else if (events[i] is TileDestroyedEvent destroyed && views.TryGetValue(destroyed.Tile, out TileView view))
                 {
                     float popStart = nextBeat;
-                    if (blast is LineClearActivatedEvent)
+                    if (explosion != null)
+                    {
+                        popStart = explosionStart + GetExplosionReachTime(explosion, destroyed.Cell);
+                    }
+                    else if (blast is LineClearActivatedEvent)
                     {
                         int distance = Mathf.Abs(destroyed.Cell.x - blast.Cell.x) + Mathf.Abs(destroyed.Cell.y - blast.Cell.y);
                         popStart = blastStart + distance / settings.LineBlastSpeed;
@@ -403,8 +418,39 @@ namespace ggo2026
 
                 if (pending.HasTarget) LaunchProjectile(pending.Effect, pending.Target);
                 else if (pending.Effect is LineClearActivatedEvent line) LaunchLineBlast(line, elapsed - pending.StartTime);
+                else if (pending.Effect is ExplosionActivatedEvent explosion) LaunchExplosion(explosion, elapsed - pending.StartTime);
                 pendingBlasts.RemoveAt(i);
             }
+        }
+
+        /// <summary>
+        /// Seconds after a bomb's circle spawns that its edge reaches <paramref name="cell"/>'s ring (square distance
+        /// from the bomb), so every tile in a ring pops together. The board lists targets ring by ring, so these
+        /// times never decrease.
+        /// </summary>
+        private float GetExplosionReachTime(ExplosionActivatedEvent explosion, Vector2Int cell)
+        {
+            Vector2Int offset = cell - explosion.Cell;
+            int ring = Mathf.Max(Mathf.Abs(offset.x), Mathf.Abs(offset.y));
+            // The circle's full radius is Radius + 0.5 cells, matching the diameter in LaunchExplosion.
+            float fraction = ring / (explosion.Radius + 0.5f);
+            return ExplosionBlast.GetTimeToReach(fraction) * settings.ExplosionDuration;
+        }
+
+        /// <summary>
+        /// Spawns a bomb's circle, <paramref name="age"/> seconds in, sized to cover its blast square.
+        /// No visual without <see cref="BoardViewSettingsSO.ExplosionSprite"/>.
+        /// </summary>
+        private void LaunchExplosion(ExplosionActivatedEvent explosion, float age)
+        {
+            PlaySound(settings.ExplosionSound);
+
+            Sprite circle = settings.ExplosionSprite;
+            if (circle == null) return;
+
+            float diameter = (explosion.Radius * 2 + 1) * settings.CellSize;
+            ExplosionBlast.Create(circle, transform, CellToLocal(explosion.Cell), diameter, settings.ExplosionDuration,
+                GetEffectColour(explosion.Tile), age);
         }
 
         /// <summary>

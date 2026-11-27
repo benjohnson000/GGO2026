@@ -11,6 +11,10 @@ namespace ggo2026
     [Serializable]
     public class ComboRule
     {
+        // Inspector label only: Unity names list elements after their first string field. Set by RefreshLabel.
+        [HideInInspector]
+        [SerializeField] private string label;
+
         [Tooltip("Match shape that makes this combo.")]
         [SerializeField] private MatchShape shape = MatchShape.Line4;
 
@@ -19,6 +23,21 @@ namespace ggo2026
         [SerializeField] private List<TileDataSO> tiles = new List<TileDataSO>();
 
         public MatchShape Shape => shape;
+
+        /// <summary>
+        /// Sets the inspector label to the combo's name: the display name of its first tile, or the shape with no tiles.
+        /// Editor only; the rules never read it.
+        /// </summary>
+        public void RefreshLabel()
+        {
+            label = shape.ToString();
+            foreach (TileDataSO data in tiles)
+            {
+                if (data == null) continue;
+                label = data.DisplayName;
+                break;
+            }
+        }
 
         /// <summary>The first tile of <paramref name="colour"/>, else the first colourless tile, else null.</summary>
         public TileDataSO GetTile(TileColour colour)

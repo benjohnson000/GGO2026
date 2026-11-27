@@ -14,6 +14,7 @@ For what the game *is*, see [DESIGN.md](DESIGN.md). For coding conventions, see
 | `Assets/Scripts/Tiles/` | `ggo2026` | `Tile`, `TilePool`, `TileDataSO`, `StartingDeckSO`, `TileColour`; `Effects/` for `TileEffect` and subclasses | [Tiles and Deck](Systems/TilesAndDeck.md) |
 | `Assets/Scripts/Combat/` | `ggo2026` | `Combat`, `Combatant`, actions, events, listeners, statuses, `CombatantView`, `EncounterView` | [Combat](Systems/Combat.md) |
 | `Assets/Scripts/Encounter/` | `ggo2026` | `Encounter` turn flow, `EnemyDataSO`, `EnemyIntent`; `Intents/` for `IntentAction` and subclasses | [Encounter](Systems/Encounter.md) |
+| `Assets/Scripts/Ambient/` | `ggo2026` | Background life: `Bird`, `BirdSpawner`, `BirdFlock` (charm hooks) | [Ambient Birds](Systems/AmbientBirds.md) |
 | `Assets/Scripts/Editor/` | `ggo2026` | Tile inspector and Tile Editor window (editor-only assembly) | [Tile Editor](Systems/TileEditor.md) |
 | `Assets/Scripts/Utilities/` | `benjohnson` | Game-agnostic infrastructure | [Utilities](Systems/Utilities.md) |
 | `Assets/Art/Shaders/` | â€“ | `GGO2026/Tile Outline` sprite shader | [Board View](Systems/BoardView.md#tile-outline-shader) |

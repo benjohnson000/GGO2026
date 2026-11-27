@@ -25,9 +25,12 @@ MonoBehaviour:
   lineBlastPrefab: {fileID: 6407832963667842126, guid: 9de1d58f1edc30c44982ebc2d2a053c3, type: 3}
   lineBlastSpeed: 20
   lineBlastFadeTime: 0.15
+  explosionSprite: {fileID: -2413806693520163455, guid: ebe73ca9363db456bacf42c025bb4847, type: 3}
+  explosionDuration: 0.25
   defaultLaserProjectile: {fileID: 11400000, guid: f0c124bdcde459b40895030e6e459418, type: 2}
   popSound: {fileID: 11400000, guid: fe72ec12c107b3941b60b3e1c0f4fe64, type: 2}
   popPitchStep: 0.018
   popPitchMax: 1.6
   lineBlastSound: {fileID: 0}
+  explosionSound: {fileID: 11400000, guid: f2d83859ad782e843886ddaa50fb5c9b, type: 2}
   dragThreshold: 0.35

@@ -27,5 +27,14 @@ namespace ggo2026
         public int Height => height;
         public IReadOnlyList<TileDataSO> FillerTiles => fillerTiles;
         public IReadOnlyList<ComboRule> ComboRules => comboRules;
+
+        private void OnValidate()
+        {
+            // Names each list element after its combo. Renaming a tile asset updates it the next time this config is edited.
+            foreach (ComboRule rule in comboRules)
+            {
+                if (rule != null) rule.RefreshLabel();
+            }
+        }
     }
 }

@@ -10,12 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a022e14baa939ff4a87135978a945ed9, type: 3}
-  m_Name: None-Bomb
+  m_Name: Green-Bomb
   m_EditorClassIdentifier: ggo2026::ggo2026.TileDataSO
   displayName: Bomb
-  colour: 0
-  customSprite: {fileID: -4404604814187655606, guid: 50f9fdcb6713c5b4d9a861ad273ffd09, type: 3}
-  customSpriteOutline: 0
+  colour: 4
+  customSprite: {fileID: 2045773748, guid: 3cd75fa27e43b7a4aa64f42e3c67dab2, type: 3}
+  customSpriteOutline: 1
   shape: {fileID: 1014383664, guid: a1709d09918df0e4399d94d21e026674, type: 3}
   shapeColorSource: 1
   shapeColor: {r: 1, g: 1, b: 1, a: 1}
@@ -35,4 +35,3 @@ MonoBehaviour:
       data:
         projectile: {fileID: 0}
         radius: 1
-        activatesOnSwap: 1

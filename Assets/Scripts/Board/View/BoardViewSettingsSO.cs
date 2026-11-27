@@ -59,6 +59,15 @@ namespace ggo2026
         [Min(0f)]
         [SerializeField] private float lineBlastFadeTime = 0.15f;
 
+        [Header("Explosion")]
+        [Tooltip("Optional. Circle drawn when a bomb explodes, tinted with the bomb's colour. It grows to cover the blast square " +
+                 "and fades out. Use white art. Without it, bombs have no visual of their own.")]
+        [SerializeField] private Sprite explosionSprite;
+
+        [Tooltip("Seconds the explosion circle takes to grow to full size and fade out.")]
+        [Min(0.01f)]
+        [SerializeField] private float explosionDuration = 0.25f;
+
         [Header("Laser")]
         [Tooltip("Optional. Projectile flown from a laser tile to each target when the laser effect has no Projectile of its own; " +
                  "the target starts to pop when it lands. Without either, targets pop as soon as the laser fires.")]
@@ -78,6 +87,9 @@ namespace ggo2026
 
         [Tooltip("Optional. Played once per line blast, as it launches.")]
         [SerializeField] private SoundProfileSO lineBlastSound;
+
+        [Tooltip("Optional. Played once per bomb explosion, as its circle bursts out.")]
+        [SerializeField] private SoundProfileSO explosionSound;
 
         [Header("Input")]
         [Tooltip("How far the pointer must drag, as a fraction of a cell, before a swap triggers.")]
@@ -103,5 +115,8 @@ namespace ggo2026
         public float LineBlastFadeTime => lineBlastFadeTime;
         public SoundProfileSO LineBlastSound => lineBlastSound;
         public ProjectileStyleSO DefaultLaserProjectile => defaultLaserProjectile;
+        public Sprite ExplosionSprite => explosionSprite;
+        public float ExplosionDuration => explosionDuration;
+        public SoundProfileSO ExplosionSound => explosionSound;
     }
 }

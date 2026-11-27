@@ -10,6 +10,7 @@
 | `BoardAnimatingState` | Runs `BoardView.PlayEvents` as a coroutine, then returns to Idle. |
 | `TileView` | One tile's sprite(s). Built entirely in code — no prefab. |
 | `LineBlast` | Prefab component: one arm of a striped tile's blast. See [Line blast](#line-blast). Lasers and colour bombs use a `DamageProjectile` instead; see [Laser and colour bomb projectiles](#laser-and-colour-bomb-projectiles). |
+| `ExplosionBlast` | A bomb's expanding, fading circle. Built in code — no prefab. See [Bomb explosion](#bomb-explosion). |
 | `BoardViewSettingsSO` | Layout, visuals, timing and drag tuning. |
 | `PaletteSO` / `ColourSwatch` | Display colours per `TileColour`, plus outline colour/thickness. |
 
@@ -61,7 +62,7 @@ Drags off the edge of the board are ignored.
 | Events | Animation | Timing |
 |---|---|---|
 | `SwapEvent` | Both tiles slide past each other; rejected swaps slide back | `SwapDuration` each way, smoothstep |
-| `MatchEvent` + `TileDestroyedEvent` + `TileEffectActivatedEvent` run | Destroyed tiles pop one at a time in event order: each (including those a tile effect hits) starts shrinking `PopInterval` after the previous one (except in a [line blast](#line-blast), which sets its own times), and as soon as a tile has fully disappeared its effects' `CombatEvents` go to `EncounterView.Play(events, origin, colour, style)`, with the tile's world position as the origin for projectiles, its shape colour as their tint, and the effect's `Projectile` style (null = the encounter's default). Each tile plays `PopSound` as it starts, pitched up `PopPitchStep` per tile (capped at `PopPitchMax`). The count carries across every cascade of one playback (a swap and everything it sets off) and resets when the next playback starts. Shrinks overlap; the run ends when the last tile is gone, then all popped views are destroyed | `PopInterval` between tiles or `LineBlastSpeed` along a blast, `PopDuration` per tile, ease-in |
+| `MatchEvent` + `TileDestroyedEvent` + `TileEffectActivatedEvent` run | Destroyed tiles pop one at a time in event order: each (including those a tile effect hits) starts shrinking `PopInterval` after the previous one (except in a [line blast](#line-blast), which sets its own times, and a [bomb explosion](#bomb-explosion), whose tiles pop ring by ring as its circle reaches them), and as soon as a tile has fully disappeared its effects' `CombatEvents` go to `EncounterView.Play(events, origin, colour, style)`, with the tile's world position as the origin for projectiles, its shape colour as their tint, and the effect's `Projectile` style (null = the encounter's default). Each tile plays `PopSound` as it starts, pitched up `PopPitchStep` per tile (capped at `PopPitchMax`). The count carries across every cascade of one playback (a swap and everything it sets off) and resets when the next playback starts. Shrinks overlap; the run ends when the last tile is gone, then all popped views are destroyed | `PopInterval` between tiles or `LineBlastSpeed` along a blast, `PopDuration` per tile, ease-in |
 | `ComboCreatedEvent` run | New combo tiles are created at their cell and grow in from zero | `PopDuration`, smoothstep |
 | `TileMovedEvent` + `TileSpawnedEvent` run | Falling and new tiles drop together; spawns are created at `SpawnCell` | `distance / FallSpeed`, ease-in |
 | `BoardShuffledEvent` | Moved tiles slide to their new cells | `ShuffleDuration`, smoothstep |
@@ -124,7 +125,26 @@ tile pops as its projectile lands. They wait to launch like a line blast does.
   overload, with no callback), tinted with the firing tile's shape colour. The style's launch and impact
   sounds play per projectile. A projectile can't start partway through its flight, so it may land up to a
   frame after its target starts to pop.
-- `PendingBlast` holds one entry per projectile (`HasTarget`, `Target`) and one per line blast.
+- `PendingBlast` holds one entry per projectile (`HasTarget`, `Target`), one per line blast and one per
+  bomb explosion.
+
+### Bomb explosion
+
+An `ExplosionActivatedEvent`'s circle spawns on the next pop beat after it is logged (`PopInterval` after
+the last pop before it), as one `PendingBlast`; the run lasts at least until then so the circle always
+spawns. Its tiles pop ring by ring (square distance from the bomb) as the circle's edge reaches them:
+ring *k* starts when the circle's radius reaches *k* cells, i.e. `GetTimeToReach(k / (Radius + 0.5)) ×
+explosionDuration` after it spawns (`GetExplosionReachTime`). Every tile in a ring pops together and plays
+its pop sound in the same frame; use the pop sound's Min Interval to thin them out. The board lists the
+targets ring by ring, so the times never decrease. Tiles after the explosion continue at `PopInterval`
+from its last ring.
+
+`LaunchExplosion` plays `explosionSound`, then calls `ExplosionBlast.Create`, which builds a `SpriteRenderer` (sorting order 3) at the
+bomb's cell, under the board, tinted with the bomb's shape colour. Over `explosionDuration` it grows from
+zero to a diameter of `(2 × Radius + 1) × CellSize` (the blast square's width) with an ease-out cubic
+(`ExplosionBlast.GetGrowth`; `GetTimeToReach` is its inverse, used for the pop times),
+while its alpha falls linearly to 0, then it destroys itself. It may outlast the run and overlap the fall.
+No visual without `explosionSprite`; use a white circle.
 
 Move animations share reusable lists (`moveTargets`, …) because only one animation runs at a time.
 Any new animation must go through `AddMove` / `RunMoves` or keep that assumption.
@@ -192,9 +212,12 @@ start. Missing fallback sprite → error per tile that needs it.
 | | `popPitchStep` | 0.04 | Pitch added per successive pop after a swap, across all its cascades. 0 = flat |
 | | `popPitchMax` | 1.6 | Cap on the rising pitch |
 | | `lineBlastSound` | – | `SoundProfileSO` played once as each line blast launches |
+| | `explosionSound` | – | `SoundProfileSO` played once per bomb explosion, as its circle spawns. Plays even with no `explosionSprite` |
 | Line Blast | `lineBlastPrefab` | – | One `LineBlast` arm. No visual when unassigned |
 | | `lineBlastSpeed` | 20 cells/s | Head speed, and so the pop rhythm along a line |
 | | `lineBlastFadeTime` | 0.15 s | Fade after the head reaches the edge |
+| Explosion | `explosionSprite` | – | White circle drawn when a bomb explodes. No visual when unassigned |
+| | `explosionDuration` | 0.25 s | Time to grow to full size and fade out |
 | Laser | `defaultLaserProjectile` | – | `ProjectileStyleSO` for laser effects with no `Projectile` of their own. Its `duration` sets when targets pop. With no style there is no visual and targets pop as soon as the laser fires |
 | Input | `dragThreshold` | 0.35 | Fraction of a cell to drag before swapping |
 
