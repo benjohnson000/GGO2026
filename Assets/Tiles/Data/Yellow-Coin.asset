@@ -15,6 +15,7 @@ MonoBehaviour:
   displayName: Coin
   colour: 8
   customSprite: {fileID: 0}
+  customSpriteOutline: 1
   shape: {fileID: 1014383664, guid: a1709d09918df0e4399d94d21e026674, type: 3}
   shapeColorSource: 1
   shapeColor: {r: 1, g: 1, b: 1, a: 1}
@@ -24,7 +25,13 @@ MonoBehaviour:
   icon: {fileID: 1136805583, guid: 772c731695356654bb3255554ec94552, type: 3}
   iconColorSource: 2
   iconColor: {r: 1, g: 1, b: 1, a: 1}
-  effects: []
+  effects:
+  - rid: 7267738410687135821
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7267738410687135821
+      type: {class: GainCoinsEffect, ns: ggo2026, asm: ggo2026}
+      data:
+        projectile: {fileID: 11400000, guid: ae11fec07efc3e34b9a4d329a8e97da7, type: 2}
+        amount: 1

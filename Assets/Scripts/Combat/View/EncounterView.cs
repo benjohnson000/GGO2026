@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using benjohnson;
 using UnityEngine;
@@ -21,8 +22,12 @@ namespace ggo2026
         [SerializeField] private CombatantView playerView;
         [SerializeField] private CombatantView enemyView;
 
-        [Tooltip("Optional. Shown when the enemy dies.")]
+        [Tooltip("Optional. Shown when the enemy dies. Not needed when the UI scene's RewardScreen is used.")]
         [SerializeField] private GameObject victoryRoot;
+
+        [Tooltip("Seconds after the enemy's death is shown before the reward screen opens.")]
+        [Min(0f)]
+        [SerializeField] private float rewardDelay = 0.75f;
 
         [Tooltip("Optional. Shown when the player dies.")]
         [SerializeField] private GameObject defeatRoot;
@@ -55,6 +60,9 @@ namespace ggo2026
         private readonly Queue<QueuedEvent> queue = new Queue<QueuedEvent>();
         private bool settlePending;
 
+        private EnemyDataSO enemy;
+        private readonly System.Random rng = new System.Random();
+
         private class QueuedEvent
         {
             public CombatEvent Event;
@@ -71,12 +79,12 @@ namespace ggo2026
                 return;
             }
 
-            EnemyDataSO enemy = enemyData as EnemyDataSO;
-            if (enemy == null) Debug.LogWarning($"{name}: {enemyData.name} is not an Enemy asset, so the enemy has no intents.", enemyData);
+            enemy = enemyData as EnemyDataSO;
+            if (enemy == null) Debug.LogWarning($"{name}: {enemyData.name} is not an Enemy asset, so the enemy has no intents or rewards.", enemyData);
 
             // Health carry-over between fights needs run state, which does not exist yet; both start at full health.
             Combat combat = new Combat(playerData.CreateCombatant(), enemyData.CreateCombatant());
-            Encounter = new Encounter(combat, enemy != null ? enemy.Intents : null, new System.Random());
+            Encounter = new Encounter(combat, enemy != null ? enemy.Intents : null, rng);
         }
 
         private void Start()
@@ -195,7 +203,35 @@ namespace ggo2026
             if (playerView != null) playerView.Apply(combatEvent);
             if (enemyView != null) enemyView.Apply(combatEvent);
 
-            if (combatEvent is CombatantDiedEvent died) ShowResult(died.Target == Combat.Enemy);
+            if (combatEvent is CombatantDiedEvent died)
+            {
+                bool playerWon = died.Target == Combat.Enemy;
+                ShowResult(playerWon);
+                if (playerWon) StartCoroutine(ShowRewardsAfterDelay());
+            }
+        }
+
+        /// <summary>
+        /// Opens the UI scene's <see cref="RewardScreen"/> with this enemy's rewards. Continuing from it starts the next
+        /// fight, which for now means reloading this one (there is no map or run state yet).
+        /// </summary>
+        private IEnumerator ShowRewardsAfterDelay()
+        {
+            if (rewardDelay > 0f) yield return new WaitForSeconds(rewardDelay);
+
+            RewardScreen screen = RewardScreen.instance;
+            if (screen == null)
+            {
+                Debug.LogWarning($"{name}: no RewardScreen found (is the UI scene loaded?), so no rewards are offered.", this);
+                yield break;
+            }
+
+            List<Reward> rewards = enemy != null ? enemy.CreateRewards(rng) : new List<Reward>();
+            screen.Show(rewards, () =>
+            {
+                // The fight's scene may already be unloading.
+                if (this != null) Restart();
+            });
         }
 
         /// <summary>Reloads this scene to start the fight again. Hook a restart button's OnClick to this.</summary>

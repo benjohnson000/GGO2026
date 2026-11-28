@@ -185,9 +185,11 @@ each entry; add, remove and reorder entries with the normal list controls.
 - `TileEffectContext`: `Board` (read only), `Tile`, `Cell`, `SwapDirection` (dragged tile → target,
   only for tiles matched by the swap's own matches, else null), `Cause` (the effect event that destroyed
   it, null if matched or swap-fired), `SwappedWith` (the partner tile when the swap fired it, else null),
-  `Combat`, `Owner` / `Opponent` (`Combat.Player` / `Combat.Enemy`, null outside a fight), `Random` (the
-  board's rng).
+  `Combat`, `Owner` / `Opponent` (`Combat.Player` / `Combat.Enemy`, null outside a fight), `Coins` (the
+  player's `CoinPurse`, null if none), `Random` (the board's rng).
 - `Board.Combat` is set by `BoardView` from its `encounter` field. Without it, combat effects do nothing.
+- `Board.Coins` is set by `BoardView` from the UI scene's `CoinsView`. The board adds each `CoinsGainedEvent`'s
+  `Amount` to it as it logs the event. Without it, coin effects do nothing. See [Coins](Coins.md).
 
 | Effect | Fields | Does |
 |---|---|---|
@@ -199,6 +201,7 @@ each entry; add, remove and reorder entries with the normal list controls.
 | `GainBlockEffect` | `amount` (3) | `GainBlockAction` on the owner. |
 | `HealEffect` | `amount` (2) | `HealAction` on the owner. |
 | `ApplyStatusEffect` | `status`, `stacks` (3), `target` (Opponent/Owner) | `ApplyStatusAction`. Logs an error and does nothing without a status. |
+| `GainCoinsEffect` | `amount` (1) | Emits `CoinsGainedEvent`; the board adds the coins to `Board.Coins`, and the board view flies them to the coin counter once the tile has popped. Returns null without a purse. See [Coins](Coins.md). |
 
 The four combat effects derive from `CombatTileEffect`, which returns null outside a fight, otherwise
 queues the action from `CreateAction(context)` and returns a plain `TileEffectActivatedEvent`.
@@ -232,6 +235,7 @@ queues the action from `CreateAction(context)` and returns a plain `TileEffectAc
 | `ColourBombActivatedEvent` | + `Colour` | Subclass for `ColourBombEffect`. `None` = whole board |
 | `LaserActivatedEvent` | – | Subclass for `LaserEffect`. `Targets` are the cells shot, nearest first |
 | `ExplosionActivatedEvent` | + `Radius` | Subclass for `ExplosionEffect`. `Targets` run from the centre outward, ring by ring |
+| `CoinsGainedEvent` | + `Amount` | Subclass for `GainCoinsEffect`. Already added to `Board.Coins` |
 | `ComboCreatedEvent` | `Tile`, `Cell`, `Group` | A match made a combo tile, after all of the step's destroys and before gravity |
 | `TileMovedEvent` | `Tile`, `From`, `To` | A tile falls during gravity |
 | `TileSpawnedEvent` | `Tile`, `Cell`, `SpawnCell` | A tile is drawn into a cell. `SpawnCell.y >= Height` |

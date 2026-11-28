@@ -232,6 +232,15 @@ The starting deck contains many tiles of each colour. These **plain tiles** have
 
 - **Tile** is the agreed name for deck items.
 - **Charm** is the agreed name for passive run items.
+- **Coins** is the agreed name for the currency (older notes say "gold").
+
+## Coins
+
+- The player collects coins during a run, in several ways: tiles with a coin effect, defeating enemies, and
+  later other sources.
+- Coins carry over between encounters.
+- Coins from tiles fly from the tile to the coin counter in the top bar.
+- Still open: what coins are spent on (shop, rewards) and how much each source gives.
 
 ## Open Questions
 

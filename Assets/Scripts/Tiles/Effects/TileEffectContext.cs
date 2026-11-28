@@ -40,9 +40,15 @@ namespace ggo2026
         /// <summary>The other side (the enemy), or null outside a fight.</summary>
         public Combatant Opponent => Combat?.Enemy;
 
+        /// <summary>
+        /// The player's coins, or null when the board has none. Effects never change it directly: they return a
+        /// <see cref="CoinsGainedEvent"/>, which the board applies.
+        /// </summary>
+        public CoinPurse Coins { get; }
+
         public System.Random Random { get; }
 
-        public TileEffectContext(Board board, Tile tile, Vector2Int cell, Vector2Int? swapDirection, TileEffectActivatedEvent cause, Tile swappedWith, Combat combat, System.Random random)
+        public TileEffectContext(Board board, Tile tile, Vector2Int cell, Vector2Int? swapDirection, TileEffectActivatedEvent cause, Tile swappedWith, Combat combat, CoinPurse coins, System.Random random)
         {
             Board = board;
             Tile = tile;
@@ -51,6 +57,7 @@ namespace ggo2026
             Cause = cause;
             SwappedWith = swappedWith;
             Combat = combat;
+            Coins = coins;
             Random = random;
         }
     }

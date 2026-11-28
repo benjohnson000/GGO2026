@@ -14,6 +14,8 @@ For what the game *is*, see [DESIGN.md](DESIGN.md). For coding conventions, see
 | `Assets/Scripts/Tiles/` | `ggo2026` | `Tile`, `TilePool`, `TileDataSO`, `StartingDeckSO`, `TileColour`; `Effects/` for `TileEffect` and subclasses | [Tiles and Deck](Systems/TilesAndDeck.md) |
 | `Assets/Scripts/Combat/` | `ggo2026` | `Combat`, `Combatant`, actions, events, listeners, statuses, `CombatantView`, `EncounterView` | [Combat](Systems/Combat.md) |
 | `Assets/Scripts/Encounter/` | `ggo2026` | `Encounter` turn flow, `EnemyDataSO`, `EnemyIntent`; `Intents/` for `IntentAction` and subclasses | [Encounter](Systems/Encounter.md) |
+| `Assets/Scripts/Coins/` | `ggo2026` | `CoinPurse` (rules), `CoinsView` (top bar counter, flying coins) | [Coins](Systems/Coins.md) |
+| `Assets/Scripts/Rewards/` | `ggo2026` | `Reward` and subclasses, `RewardSource` and subclasses, `RewardScreen`, `RewardListItemView` | [Rewards](Systems/Rewards.md) |
 | `Assets/Scripts/Ambient/` | `ggo2026` | Background life: `Bird`, `BirdSpawner`, `BirdFlock` (charm hooks) | [Ambient Birds](Systems/AmbientBirds.md) |
 | `Assets/Scripts/Editor/` | `ggo2026` | Tile inspector and Tile Editor window (editor-only assembly) | [Tile Editor](Systems/TileEditor.md) |
 | `Assets/Scripts/Utilities/` | `benjohnson` | Game-agnostic infrastructure | [Utilities](Systems/Utilities.md) |
@@ -52,7 +54,7 @@ All gameplay runs in additively loaded scenes. Build order (`ProjectSettings/Edi
 | 1 | `Camera` | Utility scene | `Main Camera` |
 | 2 | `GameUtilities` | Utility scene | `InputManager`, `EventSystem` |
 | 3 | `Game` | Environment scene (swapped by transitions) | `Board` (`BoardView`), world-space `Canvas` |
-| 4 | `UI` | Utility scene (not loaded at startup yet) | `Canvas` |
+| 4 | `UI` | Utility scene, loaded at startup | `Canvas` (world space) with `TopBarMenu` (`CoinsView` on `Coins`) |
 
 Startup sequence:
 
@@ -69,8 +71,8 @@ Notes:
   index 0 when no `SceneController` exists, so Play works from any scene.
 - Singletons in other scenes may wake after your object. Code that needs one should retry in `Start`
   (see `BoardView.TrySubscribe`) and cameras should be looked up lazily (see `CanvasCameraAssigner`).
-- The `UI` scene is in the build list but not in `startupUtilityScenes`, so it is never loaded at runtime
-  today. Add it to the list on the `SceneController` in `PersistentScene` when UI work starts.
+- The `UI` scene is in `startupUtilityScenes`, so it stays loaded across environment changes. The run's coins
+  live there for now (see [Coins](Systems/Coins.md)).
 
 ## Assets
 
@@ -104,13 +106,17 @@ Built:
   See [Health bar](Systems/Combat.md#health-bar).
 - Encounter flow: random weighted enemy intents with per-intent countdowns ticked by each accepted swap,
   enemy and player turns, placeholder victory/defeat and restart. See [Encounter](Systems/Encounter.md).
+- Coins: a purse and coin tiles (`GainCoinsEffect`), shown on the top bar counter with coins flying in from
+  where they were earned. See [Coins](Systems/Coins.md).
+- Reward screen after a win: reward sources listed on each enemy (coins, tile choice), collected from a list in
+  the UI scene, with Skip/Continue. See [Rewards](Systems/Rewards.md).
 - Infrastructure: scene loading, transitions, input, audio managers, save/load.
 
 Not built yet (see [DESIGN.md â€º Open Questions](DESIGN.md#open-questions) before starting any of these):
 
 - Passive tile effects. Combat effects fire on destruction like board effects for now; whether that is the final trigger rule is an open question.
-- Stun and other statuses beyond Poison, enemy tiles, affixes, rewards after a win.
-- Charms.
-- Run state (a run's deck currently comes straight from a `StartingDeckSO`), rewards, map.
+- Stun and other statuses beyond Poison, enemy tiles, affixes.
+- Charms, and the pick-a-tile screen and charm rewards.
+- Run state (a run's deck currently comes straight from a `StartingDeckSO`, so picked tiles aren't kept), map.
 - Audio is coded but `SFXManager` / `MusicManager` are not placed in any scene.
 - Save data structures (the `SaveLoadSystem` is ready but unused).

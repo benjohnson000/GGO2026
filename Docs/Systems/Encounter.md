@@ -7,7 +7,7 @@ swaps, and its turn comes when the countdown reaches 0. It builds on [Combat](Co
 | Type | Role |
 |---|---|
 | `Encounter` | Plain C#. Owns the `Combat`, picks intents, ticks the countdown, runs enemy turns. |
-| `EnemyDataSO` | A `CombatantDataSO` with a list of `EnemyIntent`s. **Create › GGO2026 › Enemy**. |
+| `EnemyDataSO` | A `CombatantDataSO` with a list of `EnemyIntent`s and a list of `RewardSource`s offered after a win (default 10 coins; see [Rewards](Rewards.md)). `CreateRewards(rng)` rolls them. **Create › GGO2026 › Enemy**. |
 | `EnemyIntent` | Serializable: optional `label`, `countdown`, `weight` and a `[SerializeReference]` list of `IntentAction`s. |
 | `IntentAction` (`Intents/`) | One thing an intent does: `AttackIntent`, `BlockIntent`, `ApplyStatusIntent`. |
 | `IntentChangedEvent` | A `CombatEvent` logged when a new intent is picked. |
@@ -82,8 +82,9 @@ implement `CreateAction` and `Describe`. It appears in the inspector's type pick
 
 - `EncounterView` builds the `Encounter` in `Awake` and calls `Begin()` in `Start`. It exposes
   `AdvanceSwap()` and `IsOver` for `BoardView`. Its optional `victoryRoot`/`defeatRoot` are shown when a
-  `CombatantDiedEvent` plays. `Restart()` reloads the scene through `SceneController`; hook a button's
-  OnClick to it.
+  `CombatantDiedEvent` plays. When the enemy dies it waits `rewardDelay` (0.75 s), then opens the UI scene's
+  [`RewardScreen`](Rewards.md) with the enemy's rewards; Skip/Continue calls `Restart()`. `Restart()` reloads the
+  scene through `SceneController`; a button's OnClick can also call it.
 - `BoardView` calls `encounter.AdvanceSwap()` right after an accepted `TrySwap` and plays those events
   when the swap's animations finish and every projectile has landed (`EncounterView.IsPlaying`).
   It then calls `EncounterView.Settle()` so the [health bars'](Combat.md#health-bar) underfills catch up.
@@ -96,4 +97,4 @@ implement `CreateAction` and `Describe`. It appears in the inspector's type pick
 
 - The Stun status, enemy tiles, affixes, and scripted or fixed intent patterns.
 - A pause or animation before the enemy acts; enemy turn events show instantly after the board settles.
-- Rewards or the next encounter after a win (only the placeholder victory/defeat roots and restart exist).
+- A next encounter after a win: the reward screen's Continue reloads the same fight.

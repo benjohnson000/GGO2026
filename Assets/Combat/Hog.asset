@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Hog
   m_EditorClassIdentifier: ggo2026::ggo2026.EnemyDataSO
   displayName: Hog
-  maxHealth: 500
+  maxHealth: 75
   intents:
   - label: Attack
     countdown: 4

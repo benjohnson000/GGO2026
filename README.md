@@ -25,6 +25,8 @@ matches; between encounters, build the deck of tiles that fills the grid.
 | [Docs/Systems/TilesAndDeck.md](Docs/Systems/TilesAndDeck.md) | Tile data, the deck-as-pool, fillers, colours |
 | [Docs/Systems/Combat.md](Docs/Systems/Combat.md) | Health, block, statuses, damage pipeline, action queue, listeners |
 | [Docs/Systems/Encounter.md](Docs/Systems/Encounter.md) | Turn flow, enemy intents and countdowns, victory/defeat |
+| [Docs/Systems/Coins.md](Docs/Systems/Coins.md) | Coin purse, coin tiles, the top bar counter and flying coins |
+| [Docs/Systems/Rewards.md](Docs/Systems/Rewards.md) | The reward screen after a win: reward sources on enemies, coin and tile-choice rewards |
 | [Docs/Systems/AmbientBirds.md](Docs/Systems/AmbientBirds.md) | Birds that fly in, perch on scene points and fly off |
 | [Docs/Systems/TileEditor.md](Docs/Systems/TileEditor.md) | Tile inspector and Tile Editor window |
 | [Docs/Systems/Utilities.md](Docs/Systems/Utilities.md) | Singleton, state machine, scenes, transitions, input, audio, save/load |

@@ -14,9 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   close:
     behavior: {fileID: 4036623620110467907, guid: ce3454361bf3a714888baa230e3ce939, type: 3}
-    color: {r: 0.34117648, g: 0.14509805, b: 0.23137255, a: 1}
+    color: {r: 0.14509805, g: 0.07450981, b: 0.10196079, a: 1}
     duration: 0.3
   open:
     behavior: {fileID: 8682462520865997225, guid: 507b575997c239845af8f39b36fbf0f0, type: 3}
-    color: {r: 0.34117648, g: 0.14509805, b: 0.23137255, a: 1}
+    color: {r: 0.14509805, g: 0.07450981, b: 0.10196079, a: 1}
     duration: 0.2

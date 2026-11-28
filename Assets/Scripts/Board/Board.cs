@@ -57,6 +57,12 @@ namespace ggo2026
         /// </summary>
         public Combat Combat { get; set; }
 
+        /// <summary>
+        /// The player's coins, or null for none (coin effects then do nothing). Each <see cref="CoinsGainedEvent"/> is
+        /// added to it as the board logs the event.
+        /// </summary>
+        public CoinPurse Coins { get; set; }
+
         /// <param name="combos">Which combo tiles special matches make. Null means matches never make combos.</param>
         public Board(int width, int height, TilePool pool, System.Random rng, ComboTable combos = null)
         {
@@ -196,7 +202,7 @@ namespace ggo2026
                 {
                     PendingEffect pending = pendingEffects[i];
                     TileEffectContext context = new TileEffectContext(this, pending.Tile, pending.Cell,
-                        pending.Cause == null ? swapDirection : null, pending.Cause, pending.SwappedWith, Combat, rng);
+                        pending.Cause == null ? swapDirection : null, pending.Cause, pending.SwappedWith, Combat, Coins, rng);
 
                     // A tile's effects fire in list order, each seeing the board as the previous one left it.
                     IReadOnlyList<TileEffect> effects = pending.Tile.Effects;
@@ -236,6 +242,7 @@ namespace ggo2026
                 activated = new TileEffectActivatedEvent(effect, context.Tile, context.Cell);
             }
             if (hasCombatEvents) activated.CombatEvents = combatEvents;
+            if (activated is CoinsGainedEvent coinsGained && Coins != null) Coins.Gain(coinsGained.Amount);
 
             events.Add(activated);
             foreach (Vector2Int target in activated.Targets)

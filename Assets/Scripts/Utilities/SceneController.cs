@@ -13,7 +13,7 @@ namespace benjohnson
         [SerializeField] private TransitionInfoSO defaultTransition;
 
         [Header("Startup")]
-        [SerializeField] private string[] startupUtilityScenes = { "Camera", "GameUtilities" };
+        [SerializeField] private string[] startupUtilityScenes = { "Camera", "GameUtilities", "UI" };
         [SerializeField] private string startupEnvironmentScene = "Game";
 
         private string currentEnvironmentScene;

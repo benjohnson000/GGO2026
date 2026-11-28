@@ -99,6 +99,7 @@ namespace ggo2026
             Board = new Board(config.Width, config.Height, pool, rng, new ComboTable(config.ComboRules));
             // EncounterView builds its Combat in Awake, so it is ready here.
             if (encounter != null) Board.Combat = encounter.Combat;
+            TryConnectCoins();
             Play(Board.Fill());
         }
 
@@ -488,22 +489,30 @@ namespace ggo2026
         }
 
         /// <summary>
-        /// Sends combat results to the encounter, from <paramref name="next"/> up to the first effect whose tile is still
-        /// visible, and returns where it stopped. Tiles vanish in the order their effects fired, so this never holds a
-        /// vanished tile back, and combat events stay in the order they resolved.
+        /// Sends combat results to the encounter and coins to the coin counter, from <paramref name="next"/> up to the
+        /// first effect whose tile is still visible, and returns where it stopped. Tiles vanish in the order their
+        /// effects fired, so this never holds a vanished tile back, and combat events stay in the order they resolved.
         /// </summary>
         private int PlayEffectsOfVanishedTiles(List<BoardEvent> events, int next, int end)
         {
             for (; next < end; next++)
             {
-                if (!(events[next] is TileEffectActivatedEvent activated) || activated.CombatEvents.Count == 0) continue;
+                if (!(events[next] is TileEffectActivatedEvent activated)) continue;
+
+                CoinsGainedEvent coinsGained = activated as CoinsGainedEvent;
+                if (activated.CombatEvents.Count == 0 && coinsGained == null) continue;
                 if (views.ContainsKey(activated.Tile)) break;
 
-                // From the tile's cell, so hits can fly from the tile to their target.
-                if (encounter != null)
+                // From the tile's cell, so hits and coins fly from the tile to their target.
+                Vector3 origin = transform.TransformPoint(CellToLocal(activated.Cell));
+                if (encounter != null && activated.CombatEvents.Count > 0)
                 {
-                    Vector3 origin = transform.TransformPoint(CellToLocal(activated.Cell));
                     encounter.Play(activated.CombatEvents, origin, GetEffectColour(activated.Tile), activated.Effect.Projectile);
+                }
+                if (coinsGained != null)
+                {
+                    CoinsView coins = CoinsView.instance;
+                    if (coins != null) coins.ShowGain(coinsGained.Amount, origin, GetEffectColour(activated.Tile), activated.Effect.Projectile);
                 }
             }
 
@@ -637,6 +646,18 @@ namespace ggo2026
             moveDurations.Clear();
         }
 
+        /// <summary>
+        /// Gives the board the run's coins from the <see cref="CoinsView"/> in the UI scene. Retried before each swap,
+        /// as the UI scene may load after this one; until then coin effects do nothing.
+        /// </summary>
+        private void TryConnectCoins()
+        {
+            if (Board == null || Board.Coins != null) return;
+
+            CoinsView coins = CoinsView.instance;
+            if (coins != null) Board.Coins = coins.Purse;
+        }
+
         private void TrySubscribe()
         {
             if (subscribed) return;
@@ -688,6 +709,7 @@ namespace ggo2026
             Vector2Int target = dragCell + direction;
             if (!Board.IsInBounds(target)) return;
 
+            TryConnectCoins();
             List<BoardEvent> events = Board.TrySwap(dragCell, target);
             // The swap has fully resolved, so the enemy's countdown ticks now (DESIGN.md › turn order).
             // Passives will fire between the two once they exist.
